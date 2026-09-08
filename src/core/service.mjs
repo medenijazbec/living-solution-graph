@@ -11,7 +11,8 @@ function approxTokens(s){return Math.ceil(String(s).length/4);}
 function toolError(message,code='LSG_ERROR',extra={}){const e=new Error(message);e.code=code;Object.assign(e,extra);return e;}
 function canonicalWorkspace(value){const resolved=path.resolve(String(value||'.'));return process.platform==='win32'?resolved.toLowerCase():resolved;}
 function isWithin(candidate,root){return candidate===root||candidate.startsWith(root.endsWith(path.sep)?root:root+path.sep);}
-function workspaceSlug(root){const base=path.basename(root).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'workspace';return `${base}-${sha256(canonicalWorkspace(root)).slice(0,10)}`;}
+function workspaceBaseId(root){return path.basename(root).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'workspace';}
+function workspaceSlug(root){return `${workspaceBaseId(root)}-${sha256(canonicalWorkspace(root)).slice(0,10)}`;}
 
 export class LsgService {
   constructor(store,{workspaceRoot='.'}={}) {
@@ -26,10 +27,15 @@ export class LsgService {
   resolveWorkspaceProject(input={}) {
     if(!input.working_directory)throw toolError('working_directory is required','INVALID_ARGUMENT');
     const requested=path.resolve(String(input.working_directory));const key=canonicalWorkspace(requested);const projects=this.store.listProjects();
+    let root=requested;while(!fs.existsSync(path.join(root,'.git'))){const parent=path.dirname(root);if(parent===root)break;root=parent;}if(!fs.existsSync(path.join(root,'.git')))root=requested;
+    const rootKey=canonicalWorkspace(root);
+    const requestedProject=input.project_id?this.store.getProject(input.project_id):null;
+    if(requestedProject){const project=this.store.updateProjectMetadata(requestedProject.id,{workspace_root:root,workspace_key:rootKey,repository_root:requestedProject.metadata?.repository_root||root});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
+    const matchingUnboundProject=projects.find(project=>project.id===workspaceBaseId(root)&&!project.metadata?.workspace_root&&!project.metadata?.repository_root);
+    if(matchingUnboundProject){const project=this.store.updateProjectMetadata(matchingUnboundProject.id,{workspace_root:root,workspace_key:rootKey,repository_root:root});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
     const bound=projects.map(project=>({project,root:project.metadata?.workspace_root||project.metadata?.repository_root})).filter(x=>x.root).map(x=>({...x,canonical:canonicalWorkspace(x.root)})).filter(x=>isWithin(key,x.canonical)).sort((a,b)=>b.canonical.length-a.canonical.length)[0];
     if(bound){const project=bound.project.metadata?.workspace_root?bound.project:this.store.updateProjectMetadata(bound.project.id,{workspace_root:path.resolve(bound.root),workspace_key:bound.canonical});return {project,workspace_root:path.resolve(bound.root),workspace_key:bound.canonical,created:false};}
-    let root=requested;while(!fs.existsSync(path.join(root,'.git'))){const parent=path.dirname(root);if(parent===root)break;root=parent;}if(!fs.existsSync(path.join(root,'.git')))root=requested;
-    const rootKey=canonicalWorkspace(root);const exact=projects.find(project=>canonicalWorkspace(project.metadata?.workspace_root||project.metadata?.repository_root||'')===rootKey);
+    const exact=projects.find(project=>canonicalWorkspace(project.metadata?.workspace_root||project.metadata?.repository_root||'')===rootKey);
     if(exact){const project=this.store.updateProjectMetadata(exact.id,{workspace_root:root,workspace_key:rootKey});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
     const id=input.project_id||workspaceSlug(root);const project=this.store.getProject(id)||this.store.createProject({id,title:input.project_title||path.basename(root)||id,description:input.description||'',metadata:{workspace_root:root,workspace_key:rootKey,repository_root:root,auto_created_from_workspace:true}});
     return {project,workspace_root:root,workspace_key:rootKey,created:true};

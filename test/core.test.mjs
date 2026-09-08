@@ -125,7 +125,7 @@ test('workspace resolution adopts the matching repository project and isolates o
   const r=runtime();try{
     const edenRoot=path.join(r.dir,'Eden-Above');const otherRoot=path.join(r.dir,'Other-Project');
     fs.mkdirSync(path.join(edenRoot,'.git'),{recursive:true});fs.mkdirSync(path.join(otherRoot,'.git'),{recursive:true});
-    r.service.createProject({project_id:'eden-above',title:'Eden Above',metadata:{repository_root:edenRoot}});
+    r.service.createProject({project_id:'eden-above',title:'Eden Above'});
     const eden=r.service.resolveWorkspaceProject({working_directory:path.join(edenRoot,'src')});
     assert.equal(eden.project.id,'eden-above');assert.equal(eden.created,false);assert.equal(eden.workspace_root,path.resolve(edenRoot));
     const other=r.service.resolveWorkspaceProject({working_directory:otherRoot});
