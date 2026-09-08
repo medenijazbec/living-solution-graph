@@ -2,6 +2,8 @@
 
 A runnable MCP server and persistent problem-solving runtime that turns ordinary Markdown plans into a connected, versioned solution graph, lets models add missing edge cases, tracks explicit implementation/verification switches, audits the entire graph, and compiles relevant project + user history context for model calls.
 
+**New here?** Read [HOW_TO_USE_LSG.md](HOW_TO_USE_LSG.md) for Windows installation, Codex MCP registration, semantic feature/edge-case workflows, `F1` addressing, hierarchy, and the web UI.
+
 ## What is implemented
 
 - **Markdown → graph bootstrap** with source hashing, explicit plan extraction, domain detection, starter coverage packs, generic edge-case expansion, preview, and atomic commit.

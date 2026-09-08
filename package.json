@@ -27,6 +27,7 @@
     "bootstrap/",
     "docs/",
     "README.md",
+    "HOW_TO_USE_LSG.md",
     "CHANGELOG.md",
     "VERSION.json",
     ".env.example",
