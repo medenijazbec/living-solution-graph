@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "living-solution-graph": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/living_solution_graph_v6_production/src/cli.mjs", "stdio"],
+      "env": {
+        "LSG_DB_PATH": "/ABSOLUTE/PATH/lsg-data/lsg.sqlite",
+        "LSG_WORKSPACE_ROOT": "/ABSOLUTE/PATH/your-workspace"
+      }
+    }
+  }
+}

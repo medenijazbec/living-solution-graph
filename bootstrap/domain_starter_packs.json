@@ -1,0 +1,1580 @@
+{
+  "catalog_version": "5.0.0",
+  "updated_at": "2026-09-04T17:28:11+02:00",
+  "semantics": {
+    "required_review": "Expected for this archetype unless explicit project evidence makes it not applicable.",
+    "conditional": "Only materialize as required work when its condition is true; otherwise record unresolved/not-applicable.",
+    "recommended": "Strong default to evaluate but not a project requirement without scope evidence.",
+    "not_applicable": "Explicitly evaluated and excluded from completion accounting.",
+    "origin_type": "starter_pack_seed"
+  },
+  "packs": [
+    {
+      "id": "universal",
+      "version": "1.0.0",
+      "title": "Universal software baseline",
+      "signals": [],
+      "capabilities": [
+        {
+          "key": "scope",
+          "title": "Scope envelope",
+          "node_type": "scope_rule",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "target-environments",
+          "title": "Target environments/platforms",
+          "node_type": "constraint",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "config",
+          "title": "Configuration and environment management",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "secrets",
+          "title": "Secrets/credential handling",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "project uses credentials, tokens, API keys, certificates, or private services"
+        },
+        {
+          "key": "logging",
+          "title": "Structured logging and diagnostics",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "observability",
+          "title": "Health/metrics/tracing",
+          "node_type": "feature",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "error-model",
+          "title": "Error handling and user/operator-visible failure behavior",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "security",
+          "title": "Threat/security review",
+          "node_type": "risk",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "privacy",
+          "title": "Privacy/data classification",
+          "node_type": "constraint",
+          "default_disposition": "conditional",
+          "when": "project stores user, personal, confidential, telemetry, or regulated data"
+        },
+        {
+          "key": "backup-recovery",
+          "title": "Backup/recovery/restore strategy",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "project has durable state"
+        },
+        {
+          "key": "migration",
+          "title": "Schema/config/data migration strategy",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "durable state or versioned formats exist"
+        },
+        {
+          "key": "deployment",
+          "title": "Build/release/deployment path",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "rollback",
+          "title": "Rollback/recovery release path",
+          "node_type": "feature",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "testing",
+          "title": "Unit/integration/E2E test strategy",
+          "node_type": "test",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "ci",
+          "title": "Automated build/test pipeline",
+          "node_type": "feature",
+          "default_disposition": "recommended"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "invalid-input",
+          "title": "Invalid/empty/malformed input",
+          "category": "validation",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "duplicate-action",
+          "title": "Repeated/duplicate user or client action",
+          "category": "idempotency",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "dependency-down",
+          "title": "Required dependency unavailable",
+          "category": "dependency_failure",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "timeout-partial",
+          "title": "Timeout after partial success",
+          "category": "recovery",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "process-restart",
+          "title": "Process/app/server restarts mid-operation",
+          "category": "lifecycle",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "resource-exhaustion",
+          "title": "Storage/memory/CPU/queue limit reached",
+          "category": "resources",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "clock-time",
+          "title": "Timezone/DST/clock drift affects behavior",
+          "category": "time",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "upgrade-version",
+          "title": "Version/schema/API mismatch during upgrade",
+          "category": "compatibility",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "permission-change",
+          "title": "Permission/authorization changes while active",
+          "category": "security",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "project uses permissions/auth"
+        },
+        {
+          "key": "secret-log",
+          "title": "Sensitive information leaks into logs/errors",
+          "category": "security",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "project handles secrets or personal data"
+        },
+        {
+          "key": "concurrent-update",
+          "title": "Concurrent updates race or overwrite state",
+          "category": "concurrency",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "shared mutable state exists"
+        },
+        {
+          "key": "corruption",
+          "title": "Persisted state is corrupt or only partially written",
+          "category": "data_integrity",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "durable state exists"
+        }
+      ]
+    },
+    {
+      "id": "game",
+      "version": "1.0.0",
+      "title": "Game / interactive simulation",
+      "signals": [
+        "game",
+        "player",
+        "level",
+        "match",
+        "multiplayer",
+        "Unity",
+        "Unreal",
+        "Godot",
+        "Steam",
+        "console",
+        "gameplay"
+      ],
+      "capabilities": [
+        {
+          "key": "engine",
+          "title": "Engine/runtime choice (Unreal, Unity, Godot, custom, other)",
+          "node_type": "decision",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "platforms",
+          "title": "Target platforms and hardware constraints",
+          "node_type": "constraint",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "game-loop",
+          "title": "Game loop and state lifecycle",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "scene-world",
+          "title": "World/scene/level lifecycle",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "input",
+          "title": "Input/action mapping and device support",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "ui-hud",
+          "title": "Menus/HUD/UI flow",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "rendering",
+          "title": "Rendering/performance budgets",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "audio",
+          "title": "Audio/music/SFX pipeline",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "assets",
+          "title": "Asset/content import and packaging pipeline",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "save-system",
+          "title": "Save/load/local persistence",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "game has progression, settings, inventory, world state, or resume state"
+        },
+        {
+          "key": "settings",
+          "title": "Settings, keybinds, graphics/audio preferences",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "build-release",
+          "title": "Build/package/patch/update pipeline",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "backend",
+          "title": "Online game backend/services",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "multiplayer, online profiles, cloud saves, leaderboards, live services, or remote content are in scope"
+        },
+        {
+          "key": "networking",
+          "title": "Realtime/network transport and replication",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "multiplayer or realtime shared state is in scope"
+        },
+        {
+          "key": "accounts",
+          "title": "Player identity/authentication",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "online accounts or cross-device identity are in scope"
+        },
+        {
+          "key": "database",
+          "title": "Persistent server-side database",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "backend stores profiles, inventory, progression, economy, matches, entitlements, or telemetry"
+        },
+        {
+          "key": "matchmaking",
+          "title": "Lobby/matchmaking/session orchestration",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "session-based multiplayer is in scope"
+        },
+        {
+          "key": "anti-cheat",
+          "title": "Anti-cheat/abuse protections",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "competitive or economy-bearing online play is in scope"
+        },
+        {
+          "key": "telemetry",
+          "title": "Crash/performance/gameplay telemetry",
+          "node_type": "feature",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "monetization",
+          "title": "Store/IAP/DLC/entitlement processing",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "paid content, IAP, subscriptions, DLC, or virtual goods are in scope"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "save-corrupt",
+          "title": "Save file is corrupt or partially written",
+          "category": "persistence",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "save system exists"
+        },
+        {
+          "key": "save-version",
+          "title": "Old save must migrate after game update",
+          "category": "compatibility",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "save system exists"
+        },
+        {
+          "key": "crash-save",
+          "title": "Game crashes/power loss during save",
+          "category": "recovery",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "save system exists"
+        },
+        {
+          "key": "missing-content",
+          "title": "Required asset/content bundle is missing or mismatched",
+          "category": "content",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "controller-disconnect",
+          "title": "Controller/input device disconnects or changes mid-session",
+          "category": "input",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "resolution-change",
+          "title": "Resolution/window/display changes while running",
+          "category": "display",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "suspend-resume",
+          "title": "Platform suspends/resumes game mid-session",
+          "category": "lifecycle",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "low-memory",
+          "title": "Low-memory/GPU/resource pressure during active gameplay",
+          "category": "performance",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "offline-launch",
+          "title": "Online-capable game launches without network",
+          "category": "connectivity",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "online services exist"
+        },
+        {
+          "key": "disconnect-match",
+          "title": "Network drops during active match/session",
+          "category": "network",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "multiplayer exists"
+        },
+        {
+          "key": "reconnect-state",
+          "title": "Player reconnects with stale/divergent authoritative state",
+          "category": "network",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "multiplayer exists"
+        },
+        {
+          "key": "version-mismatch",
+          "title": "Client/server or player version mismatch",
+          "category": "compatibility",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "online services exist"
+        },
+        {
+          "key": "server-outage",
+          "title": "Game backend is unavailable or degraded",
+          "category": "dependency_failure",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "backend exists"
+        },
+        {
+          "key": "duplicate-reward",
+          "title": "Retry grants reward/currency/item twice",
+          "category": "economy",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "server-side progression/economy exists"
+        },
+        {
+          "key": "cheat-tamper",
+          "title": "Client sends impossible/tampered state",
+          "category": "security",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "competitive/economy online play exists"
+        },
+        {
+          "key": "match-abandon",
+          "title": "Host/player leaves at a critical match transition",
+          "category": "session",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "multiplayer exists"
+        },
+        {
+          "key": "purchase-retry",
+          "title": "Purchase succeeds but acknowledgement/entitlement delivery fails",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "monetization exists"
+        },
+        {
+          "key": "restore-entitlement",
+          "title": "Reinstall/new device must restore owned content",
+          "category": "payments",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "platform entitlements exist"
+        },
+        {
+          "key": "clock-manipulation",
+          "title": "Device clock manipulation affects timers/rewards",
+          "category": "time",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "time-based mechanics/rewards exist"
+        },
+        {
+          "key": "localization-layout",
+          "title": "Localization produces overflow/missing glyphs/input issues",
+          "category": "ux",
+          "severity": "medium",
+          "default_disposition": "required_review",
+          "when": "multiple locales are in scope"
+        }
+      ]
+    },
+    {
+      "id": "website",
+      "version": "1.0.0",
+      "title": "Website / web application",
+      "signals": [
+        "website",
+        "web app",
+        "browser",
+        "frontend",
+        "React",
+        "Vue",
+        "Angular",
+        "Next.js",
+        "HTML",
+        "CSS",
+        "SEO"
+      ],
+      "capabilities": [
+        {
+          "key": "frontend",
+          "title": "Frontend application/pages/components",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "routing",
+          "title": "Routing/navigation/error pages",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "responsive",
+          "title": "Responsive/mobile layouts",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "accessibility",
+          "title": "Accessibility baseline (keyboard, semantics, contrast, screen readers)",
+          "node_type": "constraint",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "seo",
+          "title": "SEO/metadata/sitemap/robots",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "public discoverable pages are in scope"
+        },
+        {
+          "key": "backend",
+          "title": "Backend/API/server functions",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "site is dynamic, authenticated, transactional, personalized, or server-integrated"
+        },
+        {
+          "key": "database",
+          "title": "Database/persistent data model",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "site stores durable application/user/business data"
+        },
+        {
+          "key": "auth",
+          "title": "Authentication/session lifecycle",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "users sign in or protected areas exist"
+        },
+        {
+          "key": "authorization",
+          "title": "Roles/authorization rules",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "different users/roles have different permissions"
+        },
+        {
+          "key": "files",
+          "title": "Object/file upload and storage",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "users/admins upload media/documents"
+        },
+        {
+          "key": "email",
+          "title": "Transactional email delivery",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "verification, reset, receipt, notification, or contact workflows exist"
+        },
+        {
+          "key": "payments",
+          "title": "Payment processing/billing/webhooks/refunds",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "site sells goods/services/subscriptions or collects payments"
+        },
+        {
+          "key": "search",
+          "title": "Search/indexing",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "content/catalog scale requires search"
+        },
+        {
+          "key": "cache-cdn",
+          "title": "Caching/CDN/static asset strategy",
+          "node_type": "architecture_element",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "analytics",
+          "title": "Product/web analytics and consent",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "analytics/marketing measurement is in scope"
+        },
+        {
+          "key": "admin",
+          "title": "Administration/moderation/support tooling",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "operators need to manage users/content/orders/configuration"
+        },
+        {
+          "key": "deployment",
+          "title": "Hosting/domain/TLS/deployment strategy",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "observability-web",
+          "title": "Web/API monitoring, errors and uptime",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "privacy-compliance",
+          "title": "Cookie/privacy/data-retention controls",
+          "node_type": "constraint",
+          "default_disposition": "conditional",
+          "when": "personal data, analytics, advertising, or regulated jurisdictions are in scope"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "js-fail",
+          "title": "Frontend JavaScript fails or chunk cannot load",
+          "category": "frontend",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "route-404",
+          "title": "Unknown/deleted/deep-linked route",
+          "category": "routing",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "slow-network",
+          "title": "Slow/intermittent mobile network during navigation/form submission",
+          "category": "connectivity",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "double-submit",
+          "title": "User double-submits form/action",
+          "category": "idempotency",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "session-expire",
+          "title": "Session/token expires during an in-progress action",
+          "category": "auth",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "auth exists"
+        },
+        {
+          "key": "role-change",
+          "title": "Authorization changes while session is active",
+          "category": "auth",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "authorization exists"
+        },
+        {
+          "key": "db-down",
+          "title": "Database unavailable/read-only/degraded",
+          "category": "dependency_failure",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "database exists"
+        },
+        {
+          "key": "stale-cache",
+          "title": "Cache serves stale/incorrect authorization or business data",
+          "category": "cache",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "cache exists"
+        },
+        {
+          "key": "upload-partial",
+          "title": "Upload interrupted, duplicated, oversized, or malicious",
+          "category": "files",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "file upload exists"
+        },
+        {
+          "key": "email-bounce",
+          "title": "Email delayed/bounced/duplicated/provider unavailable",
+          "category": "messaging",
+          "severity": "medium",
+          "default_disposition": "required_review",
+          "when": "email exists"
+        },
+        {
+          "key": "payment-webhook-retry",
+          "title": "Payment webhook is delayed, duplicated, reordered, or missing",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "payments exist"
+        },
+        {
+          "key": "payment-return-lost",
+          "title": "Payment succeeds but browser redirect/return is lost",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "payments exist"
+        },
+        {
+          "key": "refund-partial",
+          "title": "Refund/chargeback changes entitlement/order state after fulfillment",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "payments exist"
+        },
+        {
+          "key": "csrf-xss",
+          "title": "CSRF/XSS/injection or unsafe user content reaches browser/server",
+          "category": "security",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "rate-bot",
+          "title": "Bot/rate-limit/abuse traffic overwhelms endpoints or forms",
+          "category": "abuse",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "public endpoints/forms exist"
+        },
+        {
+          "key": "browser-compat",
+          "title": "Supported browser/device has layout or API incompatibility",
+          "category": "compatibility",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "a11y-dynamic",
+          "title": "Dynamic content/modal/navigation becomes inaccessible by keyboard/screen reader",
+          "category": "accessibility",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "seo-canonical",
+          "title": "Duplicate/canonical/robots metadata accidentally hides or duplicates public content",
+          "category": "seo",
+          "severity": "medium",
+          "default_disposition": "required_review",
+          "when": "SEO exists"
+        },
+        {
+          "key": "deploy-mismatch",
+          "title": "Frontend/backend/static assets deployed at incompatible versions",
+          "category": "deployment",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "timezone-web",
+          "title": "User/server timezone mismatch changes dates, billing, bookings, or reports",
+          "category": "time",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "time-sensitive workflows exist"
+        }
+      ]
+    },
+    {
+      "id": "web_app_saas",
+      "version": "1.0.0",
+      "title": "SaaS / multi-user web product",
+      "signals": [
+        "SaaS",
+        "tenant",
+        "workspace",
+        "organization",
+        "subscription",
+        "dashboard",
+        "team members"
+      ],
+      "extends": [
+        "website"
+      ],
+      "capabilities": [
+        {
+          "key": "tenancy",
+          "title": "Tenant/workspace isolation model",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "membership",
+          "title": "Membership/invites/roles",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "billing",
+          "title": "Subscription/billing/plan/entitlement lifecycle",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "paid plans exist"
+        },
+        {
+          "key": "usage-limits",
+          "title": "Quota/usage metering",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "plans have quotas/limits"
+        },
+        {
+          "key": "audit-log",
+          "title": "Security/business audit log",
+          "node_type": "feature",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "support-admin",
+          "title": "Support impersonation/admin tooling with controls",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "support staff require account assistance"
+        },
+        {
+          "key": "jobs",
+          "title": "Background job/queue processing",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "long-running/async workflows exist"
+        },
+        {
+          "key": "notifications",
+          "title": "In-app/email/push notification model",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "product sends notifications"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "tenant-leak",
+          "title": "Cross-tenant data or cache leakage",
+          "category": "security",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "invite-race",
+          "title": "Invite accepted after role/member state changed",
+          "category": "authorization",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "billing-race",
+          "title": "Subscription changes race with entitlement checks",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "billing exists"
+        },
+        {
+          "key": "quota-concurrency",
+          "title": "Concurrent requests exceed quota without correct accounting",
+          "category": "concurrency",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "usage limits exist"
+        },
+        {
+          "key": "job-retry",
+          "title": "Background job retries after partial side effects",
+          "category": "idempotency",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "jobs exist"
+        },
+        {
+          "key": "delete-export",
+          "title": "Account/tenant deletion while export/jobs/integrations are active",
+          "category": "lifecycle",
+          "severity": "high",
+          "default_disposition": "required_review"
+        }
+      ]
+    },
+    {
+      "id": "ecommerce",
+      "version": "1.0.0",
+      "title": "E-commerce / marketplace",
+      "signals": [
+        "cart",
+        "checkout",
+        "order",
+        "product",
+        "catalog",
+        "inventory",
+        "shipping",
+        "payment",
+        "refund"
+      ],
+      "extends": [
+        "website"
+      ],
+      "capabilities": [
+        {
+          "key": "catalog",
+          "title": "Catalog/product/pricing model",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "cart",
+          "title": "Cart lifecycle",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "checkout",
+          "title": "Checkout/order creation",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "payment",
+          "title": "Payment provider integration and reconciliation",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "inventory",
+          "title": "Inventory/reservation model",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "finite stock exists"
+        },
+        {
+          "key": "fulfillment",
+          "title": "Fulfillment/shipping/delivery state",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "physical goods exist"
+        },
+        {
+          "key": "tax",
+          "title": "Tax calculation/reporting",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "tax obligations apply"
+        },
+        {
+          "key": "refunds",
+          "title": "Cancellation/refund/chargeback handling",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "promotions",
+          "title": "Coupons/promotions/pricing rules",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "discounting is in scope"
+        },
+        {
+          "key": "order-admin",
+          "title": "Order/support/admin operations",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "payment-order-split",
+          "title": "Payment succeeds but order creation/confirmation fails",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "order-payment-split",
+          "title": "Order created but payment remains unknown/failed",
+          "category": "payments",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "inventory-race",
+          "title": "Last unit purchased concurrently by multiple checkouts",
+          "category": "concurrency",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "inventory exists"
+        },
+        {
+          "key": "price-change",
+          "title": "Price/promotion changes between cart and checkout",
+          "category": "pricing",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "duplicate-order",
+          "title": "Retry/double-click/webhook creates duplicate order or charge",
+          "category": "idempotency",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "partial-refund",
+          "title": "Partial refund, chargeback, or split tender changes order balance",
+          "category": "payments",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "shipping-fail",
+          "title": "Fulfillment/shipping provider fails after payment",
+          "category": "dependency_failure",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "physical fulfillment exists"
+        },
+        {
+          "key": "tax-fail",
+          "title": "Tax provider unavailable or returns conflicting jurisdiction result",
+          "category": "dependency_failure",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "tax calculation exists"
+        }
+      ]
+    },
+    {
+      "id": "mobile_app",
+      "version": "1.0.0",
+      "title": "Mobile application",
+      "signals": [
+        "iOS",
+        "Android",
+        "mobile app",
+        "MAUI",
+        "Swift",
+        "Kotlin",
+        "Flutter",
+        "React Native"
+      ],
+      "capabilities": [
+        {
+          "key": "platforms",
+          "title": "OS/device support matrix",
+          "node_type": "constraint",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "navigation",
+          "title": "Navigation/deep-link lifecycle",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "local-storage",
+          "title": "Local persistence/cache",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "app has offline/local state"
+        },
+        {
+          "key": "backend",
+          "title": "Backend/API integration",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "app uses remote data/services"
+        },
+        {
+          "key": "auth",
+          "title": "Authentication/token storage",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "user accounts exist"
+        },
+        {
+          "key": "permissions",
+          "title": "Runtime permission model",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "camera/location/health/bluetooth/files/notifications or protected APIs are used"
+        },
+        {
+          "key": "background",
+          "title": "Background execution/synchronization",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "background work is required"
+        },
+        {
+          "key": "notifications",
+          "title": "Push/local notifications",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "notifications are in scope"
+        },
+        {
+          "key": "updates",
+          "title": "App-store/version/update strategy",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "app-killed",
+          "title": "OS kills app during operation/sync",
+          "category": "lifecycle",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "permission-revoked",
+          "title": "Permission revoked while feature is active",
+          "category": "permissions",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "permissions exist"
+        },
+        {
+          "key": "offline-sync",
+          "title": "App remains offline then reconnects with queued changes",
+          "category": "connectivity",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "remote sync exists"
+        },
+        {
+          "key": "token-refresh",
+          "title": "Token expires while app is backgrounded or resuming",
+          "category": "auth",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "auth exists"
+        },
+        {
+          "key": "device-change",
+          "title": "User migrates/reinstalls/changes device",
+          "category": "lifecycle",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "account or durable user state exists"
+        },
+        {
+          "key": "os-update",
+          "title": "OS/API behavior changes after system update",
+          "category": "compatibility",
+          "severity": "medium",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "low-battery-background",
+          "title": "Battery saver/background restrictions suspend work",
+          "category": "resources",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "background work exists"
+        },
+        {
+          "key": "deep-link-cold",
+          "title": "Deep link opens into cold/uninitialized/unauthorized app state",
+          "category": "navigation",
+          "severity": "high",
+          "default_disposition": "required_review"
+        }
+      ]
+    },
+    {
+      "id": "backend_api",
+      "version": "1.0.0",
+      "title": "Backend service / API",
+      "signals": [
+        "API",
+        "REST",
+        "GraphQL",
+        "service",
+        "backend",
+        "microservice",
+        "endpoint",
+        "webhook"
+      ],
+      "capabilities": [
+        {
+          "key": "api-contract",
+          "title": "API/resource/event contract",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "authn",
+          "title": "Authentication",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "API is not purely public anonymous"
+        },
+        {
+          "key": "authz",
+          "title": "Authorization",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "resources/actions are permissioned"
+        },
+        {
+          "key": "persistence",
+          "title": "Database/persistence",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "service owns durable state"
+        },
+        {
+          "key": "idempotency",
+          "title": "Idempotency/retry semantics",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "mutating requests/webhooks/jobs may retry"
+        },
+        {
+          "key": "rate-limits",
+          "title": "Rate limiting/abuse controls",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "public or multi-client API"
+        },
+        {
+          "key": "versioning",
+          "title": "API/schema versioning and compatibility",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "jobs",
+          "title": "Async jobs/queues",
+          "node_type": "architecture_element",
+          "default_disposition": "conditional",
+          "when": "long-running or deferred work exists"
+        },
+        {
+          "key": "health",
+          "title": "Health/readiness/metrics/logging",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "retry-after-commit",
+          "title": "Client times out after server committed mutation then retries",
+          "category": "idempotency",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "partial-dependency",
+          "title": "One downstream dependency succeeds and another fails",
+          "category": "distributed",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "out-of-order",
+          "title": "Events/webhooks arrive duplicated or out of order",
+          "category": "events",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "event/webhook processing exists"
+        },
+        {
+          "key": "db-transaction",
+          "title": "Transaction deadlock/rollback/constraint race",
+          "category": "database",
+          "severity": "high",
+          "default_disposition": "required_review",
+          "when": "database exists"
+        },
+        {
+          "key": "schema-client",
+          "title": "Old/new clients send incompatible schema/version",
+          "category": "compatibility",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "rate-spike",
+          "title": "Traffic spike or abusive client exhausts capacity",
+          "category": "resources",
+          "severity": "high",
+          "default_disposition": "required_review"
+        }
+      ]
+    },
+    {
+      "id": "data_pipeline",
+      "version": "1.0.0",
+      "title": "Data/ETL/analytics pipeline",
+      "signals": [
+        "ETL",
+        "ELT",
+        "pipeline",
+        "warehouse",
+        "lake",
+        "batch",
+        "stream",
+        "dataset",
+        "ingestion"
+      ],
+      "capabilities": [
+        {
+          "key": "sources",
+          "title": "Source connectors and contracts",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "schema",
+          "title": "Schema/typing/evolution model",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "transform",
+          "title": "Transformation/validation rules",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "storage",
+          "title": "Destination/storage/partitioning",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "orchestration",
+          "title": "Scheduling/orchestration/checkpointing",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "quality",
+          "title": "Data quality assertions/tests",
+          "node_type": "test",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "lineage",
+          "title": "Lineage/provenance/auditability",
+          "node_type": "feature",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "backfill",
+          "title": "Backfill/replay/reprocessing strategy",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "late-data",
+          "title": "Late/out-of-order data arrives after window close",
+          "category": "time",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "duplicate-batch",
+          "title": "Source batch/file/event is replayed or duplicated",
+          "category": "idempotency",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "schema-drift",
+          "title": "Source schema adds/removes/changes fields unexpectedly",
+          "category": "compatibility",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "partial-load",
+          "title": "Destination write partially succeeds before failure",
+          "category": "data_integrity",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "poison-record",
+          "title": "One malformed/poison record blocks batch/partition",
+          "category": "validation",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "backfill-overlap",
+          "title": "Backfill overlaps live processing and double-counts data",
+          "category": "concurrency",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        }
+      ]
+    },
+    {
+      "id": "ai_llm_app",
+      "version": "1.0.0",
+      "title": "AI / LLM application or agent",
+      "signals": [
+        "LLM",
+        "AI agent",
+        "prompt",
+        "embedding",
+        "RAG",
+        "MCP",
+        "model",
+        "tool calling"
+      ],
+      "capabilities": [
+        {
+          "key": "model-provider",
+          "title": "Model/provider routing and capability contract",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "prompt-policy",
+          "title": "Prompt/system-policy/version management",
+          "node_type": "architecture_element",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "context",
+          "title": "Context retrieval/assembly/token budgeting",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "tool-permissions",
+          "title": "Tool capability/permission boundary",
+          "node_type": "feature",
+          "default_disposition": "conditional",
+          "when": "model can call tools or mutate external state"
+        },
+        {
+          "key": "evals",
+          "title": "Evaluation/regression suite",
+          "node_type": "test",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "trace",
+          "title": "Prompt/tool/model execution tracing",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "fallback",
+          "title": "Failure/fallback/retry strategy",
+          "node_type": "feature",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "cost",
+          "title": "Cost/token/rate-limit controls",
+          "node_type": "constraint",
+          "default_disposition": "recommended"
+        },
+        {
+          "key": "data-policy",
+          "title": "User/project data retention/privacy policy",
+          "node_type": "constraint",
+          "default_disposition": "required_review"
+        }
+      ],
+      "edge_cases": [
+        {
+          "key": "hallucinated-tool-arg",
+          "title": "Model invents tool arguments/IDs/paths",
+          "category": "tooling",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "tool use exists"
+        },
+        {
+          "key": "prompt-injection",
+          "title": "Retrieved/user content attempts to override system/tool policy",
+          "category": "security",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "context-stale",
+          "title": "Model receives stale graph/repository/context snapshot",
+          "category": "consistency",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "tool-partial",
+          "title": "Tool mutates state then response/connection fails",
+          "category": "recovery",
+          "severity": "critical",
+          "default_disposition": "required_review",
+          "when": "mutating tools exist"
+        },
+        {
+          "key": "model-change",
+          "title": "Provider/model behavior changes or model is removed",
+          "category": "compatibility",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "token-overflow",
+          "title": "Context exceeds budget and critical constraints are omitted",
+          "category": "context",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "loop",
+          "title": "Agent repeats actions or self-expands work without termination",
+          "category": "orchestration",
+          "severity": "high",
+          "default_disposition": "required_review"
+        },
+        {
+          "key": "unsafe-state-flip",
+          "title": "Model marks work implemented without evidence",
+          "category": "verification",
+          "severity": "critical",
+          "default_disposition": "required_review"
+        }
+      ]
+    }
+  ]
+}

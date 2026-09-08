@@ -1,0 +1,16 @@
+services:
+  lsg:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7347:7347"
+    environment:
+      LSG_HOST: 0.0.0.0
+      LSG_PORT: 7347
+      LSG_DB_PATH: /data/lsg.sqlite
+      LSG_WORKSPACE_ROOT: /workspace
+      LSG_API_TOKEN: ${LSG_API_TOKEN:?set LSG_API_TOKEN}
+      LSG_ALLOWED_HOSTS: localhost:7347,127.0.0.1:7347
+    volumes:
+      - ./data:/data
+      - ./:/workspace:ro

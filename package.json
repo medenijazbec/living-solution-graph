@@ -1,0 +1,44 @@
+{
+  "name": "living-solution-graph-mcp",
+  "version": "6.0.0",
+  "description": "Production MCP server and Living Solution Graph runtime for evolving plans into verified implementation graphs.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "bin": {
+    "lsg-mcp": "./src/cli.mjs"
+  },
+  "scripts": {
+    "start": "node src/cli.mjs http",
+    "stdio": "node src/cli.mjs stdio",
+    "test": "node --test test/*.test.mjs",
+    "test:e2e": "node --test test/e2e.test.mjs",
+    "test:protocol": "node --test test/mcp-protocol.test.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "node scripts/verify-package.mjs",
+    "manifest": "node scripts/generate-manifest.mjs"
+  },
+  "files": [
+    "src/",
+    "public/",
+    "bootstrap/",
+    "docs/",
+    "README.md",
+    "CHANGELOG.md",
+    "VERSION.json",
+    ".env.example",
+    "mcp.json.example",
+    "mcp.json.example",
+    "Dockerfile",
+    ".mcp.json",
+    "TEST_REPORT.md"
+  ],
+  "exports": {
+    ".": "./src/index.mjs",
+    "./mcp": "./src/mcp/protocol.mjs",
+    "./core": "./src/core/service.mjs"
+  }
+}

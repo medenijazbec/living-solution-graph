@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "lsg-api-token",
+      "description": "Living Solution Graph API token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "living-solution-graph": {
+      "type": "http",
+      "url": "https://lsg.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:lsg-api-token}"
+      }
+    }
+  }
+}

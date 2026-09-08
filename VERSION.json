@@ -1,0 +1,15 @@
+{
+  "name": "Living Solution Graph MCP",
+  "version": "6.0.0",
+  "release_date": "2026-09-04",
+  "release_time": "2026-09-04T17:02:00+02:00",
+  "schema_version": 6,
+  "mcp": {
+    "modern_protocol": "2026-07-28",
+    "legacy_protocols": ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07"],
+    "transports": ["stdio", "http"]
+  },
+  "storage": "SQLite WAL",
+  "runtime_dependencies": 0,
+  "tested_node": "22.16.0"
+}

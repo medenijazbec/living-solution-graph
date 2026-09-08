@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Living Solution Graph</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Living Solution Graph</h1>
+      <p>Plan → graph → implementation → evidence → completion frontier</p>
+    </div>
+    <div class="server"><input id="apiToken" type="password" placeholder="API token (remote only)" autocomplete="off"/><button id="saveToken">Use token</button><span id="healthDot"></span><span id="serverState">connecting</span></div>
+  </header>
+  <main>
+    <aside>
+      <section>
+        <h2>Projects</h2>
+        <div class="row"><input id="newTitle" placeholder="New project title"/><button id="createProject">Create</button></div>
+        <select id="projectSelect"><option value="">Select project…</option></select>
+      </section>
+      <section>
+        <h2>Import Markdown plan</h2>
+        <input id="planFile" type="file" accept=".md,text/markdown,text/plain" />
+        <textarea id="planText" placeholder="# Paste a normal .md plan here…"></textarea>
+        <div class="row"><button id="previewPlan">Preview</button><button id="commitPlan" disabled>Commit baseline</button></div>
+        <pre id="importSummary" class="mini"></pre>
+      </section>
+      <section>
+        <h2>Implementation audit</h2>
+        <div id="audit"></div>
+      </section>
+    </aside>
+    <section class="workspace">
+      <div class="toolbar">
+        <strong id="projectTitle">No project selected</strong>
+        <button id="refresh">Refresh</button>
+        <label>View <select id="graphLayer"><option value="semantic">Semantic implementation</option><option value="source">Source trace</option></select></label>
+        <label><input id="showOther" type="checkbox"/> Show non-feature nodes</label>
+      </div>
+      <div id="graph" class="graph"><div class="empty">Import a plan to generate the connected solution graph.</div></div>
+    </section>
+    <aside class="details">
+      <h2>Selected node</h2>
+      <div id="nodeDetails" class="empty">Click a square.</div>
+    </aside>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
