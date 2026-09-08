@@ -11,7 +11,7 @@ A runnable MCP server and persistent problem-solving runtime that turns ordinary
 - **Explicit state switches** on graph nodes: `implemented`, `implementation_state`, `verification_state`, timestamps, node version, graph version, direct commit SHA, and inherited parent commit.
 - **Whole-graph audit**: implemented, not implemented, verified, unverified, stale, blocked, excluded/not-applicable, unresolved, and plan-claimed implementation.
 - **Model-created edge cases** through `solution.add_edge_case`; every new edge case starts `implemented=false`, `verification_state=unverified`.
-- **Codex-authored semantic layer**: stage a source-linked implementation-unit/edge-case proposal, inspect its diff, then explicitly commit it. Semantic units drive the completion frontier when available.
+- **Codex-authored semantic layer**: validate and stage a source-linked implementation-unit/edge-case proposal, then automatically commit it by default. Pass `auto_commit=false` only for an explicitly requested review-only workflow. Semantic units drive the completion frontier when available.
 - **Persistent SQLite/WAL storage** with optimistic concurrency and event history.
 - **User history** stored separately from projects, with correction/forget semantics and token-budgeted compressed context.
 - **MCP over stdio and HTTP**, supporting modern MCP `2026-07-28` plus legacy 2025-era `initialize` clients.
@@ -132,11 +132,11 @@ repeat
 
 ## Semantic feature-list workflow
 
-Ask Codex: **“Use the `living_solution_graph` MCP server to provide the semantic feature list for this project.”** The phrases **“use lsg”**, **“@lsg”**, and **“run lsg”** are Codex invocation conventions for this registered server. They instruct Codex to use LSG; they are not wire-level MCP syntax. Codex calls `solution.prepare_semantic_feature_set`, authors an evidence-linked proposal, calls `solution.stage_semantic_feature_set`, and presents the proposed implementation units for review. The live graph changes only after `solution.commit_semantic_feature_set` is explicitly called.
+Ask Codex: **“Use the `living_solution_graph` MCP server to provide the semantic feature list for this project.”** The phrases **“use lsg”**, **“@lsg”**, and **“run lsg”** invoke this registered server. Codex resolves the working directory to its isolated project, imports the source plan, prepares the semantic feature set, and stages it. Staging validates and automatically commits by default; pass `auto_commit=false` only when you explicitly request a review-only stage.
 
 Semantic features are concise implementation units rather than one node per Markdown bullet. Each receives a human-facing number (`F1`, `F1.1`, `F1.2`), while its edge cases receive an addressable number (`F1.E1`, `F1.E2`), alongside stable semantic keys, priority, source-node references, acceptance criteria, dependencies, and scoped edge cases. Use `parent_key` to decompose a broad capability into buildable cascading child features—for example player movement into walking, vaulting, peeking, leaning, climbing, and prone. A later plan import marks semantic runs stale when its source hash changes, requiring a fresh review before replacement.
 
-Humans can request an amendment by number: “update F1” or “feature 1 needs …”. Codex resolves the number with `solution.resolve_semantic_feature_reference`, preserves source evidence and unaffected IDs, then stages a reviewable semantic update. The Semantic backlog tab in the web UI displays committed features, child features, and edge cases; selecting a node exposes its evidence, acceptance criteria, trigger, severity, and validation scenario.
+Humans can request an amendment by number: “update F1” or “feature 1 needs …”. Codex resolves the number with `solution.resolve_semantic_feature_reference`, preserves source evidence and unaffected IDs, then updates the semantic set. The Semantic backlog shows per-feature recursive edge-case totals such as `F1 → 34 EC`; selecting a feature or edge case also exposes its Markdown implementation plan.
 
 Implementation and verification are deliberately separate. Reverting `implemented` on a verified node automatically marks verification stale.
 

@@ -50,9 +50,9 @@ Restart or reconnect your Codex session after changing MCP configuration. For VS
 
 1. Give Codex a concrete Markdown-plan path.
 2. Codex imports or updates the lexical source graph.
-3. Codex prepares a semantic run, reasons over the source evidence, and stages a proposal.
-4. Review the staged feature list, hierarchy, edge cases, unsupported claims, and graph diff.
-5. Explicitly commit it. Only committed semantic data appears in the live Semantic backlog UI.
+3. Codex prepares a semantic run, reasons over the source evidence, validates the proposal, and commits it automatically.
+4. Codex reports the feature, subfeature, and edge-case totals plus each feature's recursive edge-case count (for example `F1 → 34 EC`).
+5. Request `auto_commit=false` only when you want a review-only staged proposal and diff.
 
 Use a prompt like:
 
@@ -62,13 +62,13 @@ use lsg to graph out features and edge cases of the master plan at C:\Projects\M
 
 `use lsg`, `@lsg`, and `run lsg` are Codex invocation conventions for the registered `living_solution_graph` server. They mean that Codex should use LSG rather than merely discuss it.
 
-To persist a staged proposal:
+For an explicitly review-only staged proposal, persist it with:
 
 ```text
 Commit MyGame semantic set
 ```
 
-Replace `MyGame` with the project being reviewed. LSG intentionally stages before it changes the live semantic graph, so a bad interpretation of the plan cannot silently replace the implementation backlog.
+Replace `MyGame` with the project being reviewed. Normal `solution.stage_semantic_feature_set` calls commit automatically; this command remains available for a staged run created with `auto_commit=false`.
 
 ## Semantic features, child features, and edge cases
 
@@ -101,16 +101,16 @@ F1 needs updating: add accessibility remapping and make vaulting a separate chil
 feature 3 needs its acceptance criteria tightened for co-op reconnects.
 ```
 
-Codex resolves `F1`, `F1.2`, or `feature 1` through `solution.resolve_semantic_feature_reference`, preserves unaffected semantic keys/numbers where possible, and stages an amended proposal for review. Ask it to commit after you approve the diff.
+Codex resolves `F1`, `F1.2`, or `feature 1` through `solution.resolve_semantic_feature_reference`, preserves unaffected semantic keys/numbers where possible, and automatically commits the amended set unless you ask for review-only staging.
 
 ## Web UI
 
 The local UI has two graph tabs:
 
-- **Semantic backlog:** committed semantic features, child-feature hierarchy, acceptance tests, and semantic edge cases. Feature/edge-case badges show `F…` addresses. Click a node to inspect evidence, non-goals, priority, trigger, severity, and validation scenario.
+- **Semantic backlog:** committed semantic features, child-feature hierarchy, acceptance tests, and semantic edge cases. Each feature shows its F-number and recursive edge-case total, for example `F1 → 34 EC`. Nodes are drag-repositionable and are packed to avoid overlap.
 - **Source trace:** the imported plan graph, retained for provenance and plan-update comparison.
 
-The toolbar shows the count of committed semantic features and edge cases. If the Semantic backlog is empty, a proposal is either not yet created or is still staged; explicitly commit it to make it live.
+The toolbar shows total/root/subfeature/edge-case counts. Clicking a feature or edge case opens its editable Markdown implementation plan; the UI renders headings, emphasis, lists, code, and links. The left project panel can be collapsed, and a `?workspace=C:\path\to\project` URL resolves the matching isolated project graph.
 
 ## During implementation
 
@@ -132,11 +132,14 @@ When the master plan changes, ask Codex to import the changed file again. LSG pr
 | --- | --- |
 | Import/update plan | `solution.preview_markdown_plan`, `solution.commit_plan_import` |
 | Create review brief | `solution.prepare_semantic_feature_set` |
-| Validate and stage semantic proposal | `solution.stage_semantic_feature_set` |
-| Make reviewed set live | `solution.commit_semantic_feature_set` |
+| Validate, stage, and auto-commit semantic proposal | `solution.stage_semantic_feature_set` |
+| Review-only/manual commit (optional) | `solution.commit_semantic_feature_set` |
 | Read backlog/edge cases | `solution.get_semantic_feature_list`, `solution.get_semantic_edge_cases` |
 | Resolve `F1`/`1` | `solution.resolve_semantic_feature_reference` |
 | Number legacy semantic data | `solution.reindex_semantic_features` |
+| Bind a directory to its project | `solution.resolve_workspace_project` |
+| Edit a numbered feature | `solution.update_semantic_feature` |
+| Attach/read a feature or edge-case Markdown plan | `solution.set_node_implementation_plan`, `solution.get_node_implementation_plan` |
 | Next implementation work | `solution.get_frontier` |
 | Record implementation truth | `solution.record_evidence`, `solution.set_implementation_state`, `solution.set_verification_state` |
 

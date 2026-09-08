@@ -14,12 +14,14 @@
     </div>
     <div class="server"><input id="apiToken" type="password" placeholder="API token (remote only)" autocomplete="off"/><button id="saveToken">Use token</button><span id="healthDot"></span><span id="serverState">connecting</span></div>
   </header>
-  <main>
-    <aside>
+  <main id="appShell">
+    <aside id="leftPanel" class="leftPanel">
+      <button id="collapseLeft" class="collapseButton" type="button" aria-expanded="true" title="Collapse project panel">‹</button>
       <section>
         <h2>Projects</h2>
         <div class="row"><input id="newTitle" placeholder="New project title"/><button id="createProject">Create</button></div>
         <select id="projectSelect"><option value="">Select project…</option></select>
+        <div id="workspaceBinding" class="workspaceBinding"></div>
       </section>
       <section>
         <h2>Import Markdown plan</h2>
@@ -36,7 +38,8 @@
     <section class="workspace">
       <div class="toolbar">
         <strong id="projectTitle">No project selected</strong>
-        <button id="refresh">Refresh</button>
+        <button id="refresh" type="button">Refresh</button>
+        <button id="resetLayout" type="button">Reset layout</button>
         <div class="tabs" role="tablist" aria-label="Graph view">
           <button id="semanticTab" class="tab active" type="button" role="tab" aria-selected="true">Semantic backlog</button>
           <button id="sourceTab" class="tab" type="button" role="tab" aria-selected="false">Source trace</button>
@@ -48,7 +51,7 @@
     </section>
     <aside class="details">
       <h2>Selected node</h2>
-      <div id="nodeDetails" class="empty">Click a square.</div>
+      <div id="nodeDetails" class="empty">Select a node to inspect or edit it.</div>
     </aside>
   </main>
   <script type="module" src="/app.js"></script>

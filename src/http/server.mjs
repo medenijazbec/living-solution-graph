@@ -50,6 +50,7 @@ export function createHttpServer({service,protocol,config,log=console.error}){
 
     if(pathname==='/api/projects'&&req.method==='GET')return json(res,200,{projects:service.store.listProjects()});
     if(pathname==='/api/projects'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.createProject(b));}
+    if(pathname==='/api/workspaces/resolve'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.resolveWorkspaceProject(b));}
     let m;
     if((m=pathname.match(/^\/api\/projects\/([^/]+)$/))&&req.method==='GET'){const p=service.store.getProject(decodeURIComponent(m[1]));return p?json(res,200,p):json(res,404,{error:'Project not found'});}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/graph$/))&&req.method==='GET')return json(res,200,service.getGraphView({project_id:decodeURIComponent(m[1])}));
@@ -59,6 +60,9 @@ export function createHttpServer({service,protocol,config,log=console.error}){
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases$/))&&req.method==='GET')return json(res,200,service.getSemanticEdgeCases({project_id:decodeURIComponent(m[1]),feature_id:url.searchParams.get('feature_id')||undefined,semantic_key:url.searchParams.get('semantic_key')||undefined}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/resolve$/))&&req.method==='GET')return json(res,200,service.resolveSemanticFeatureReference({project_id:decodeURIComponent(m[1]),reference:url.searchParams.get('reference')||''}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/reindex$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.reindexSemanticFeatures({...b,project_id:decodeURIComponent(m[1])}));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/features\/([^/]+)$/))&&req.method==='PATCH'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.updateSemanticFeature({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/implementation-plan$/))&&req.method==='GET')return json(res,200,service.getNodeImplementationPlan({project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/implementation-plan$/))&&req.method==='PUT'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.setNodeImplementationPlan({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/runs\/([^/]+)$/))&&req.method==='GET')return json(res,200,service.getSemanticDiff({project_id:decodeURIComponent(m[1]),run_id:decodeURIComponent(m[2])}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/prepare$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.prepareSemanticFeatureSet({...b,project_id:decodeURIComponent(m[1])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/stage$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.stageSemanticFeatureSet({...b,project_id:decodeURIComponent(m[1])}));}

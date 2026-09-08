@@ -26,7 +26,7 @@ export class LsgStore {
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
-      INSERT INTO meta(key,value) VALUES('schema_version','7') ON CONFLICT(key) DO UPDATE SET value=excluded.value;
+      INSERT INTO meta(key,value) VALUES('schema_version','8') ON CONFLICT(key) DO UPDATE SET value=excluded.value;
 
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
@@ -79,6 +79,22 @@ export class LsgStore {
       CREATE INDEX IF NOT EXISTS idx_edges_project ON edges(project_id);
       CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_id);
       CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_id);
+
+      CREATE TABLE IF NOT EXISTS node_documents (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        node_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL DEFAULT 'implementation_plan',
+        file_name TEXT NOT NULL,
+        markdown TEXT NOT NULL,
+        sha256 TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
+        actor TEXT NOT NULL DEFAULT 'user',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(node_id,kind)
+      );
+      CREATE INDEX IF NOT EXISTS idx_node_documents_project ON node_documents(project_id,node_id);
 
       CREATE TABLE IF NOT EXISTS import_sessions (
         id TEXT PRIMARY KEY,
@@ -194,6 +210,12 @@ export class LsgStore {
   listProjects() { return this.db.prepare('SELECT * FROM projects ORDER BY updated_at DESC').all().map(r => this.mapProject(r)); }
   mapProject(r) { return { ...r, metadata: p(r.metadata_json, {}), metadata_json: undefined }; }
 
+  updateProjectMetadata(id, metadata) {
+    const project=this.requireProject(id);const merged={...project.metadata,...metadata};
+    this.db.prepare('UPDATE projects SET metadata_json=?,updated_at=? WHERE id=?').run(j(merged),nowIso(),id);
+    return this.getProject(id);
+  }
+
   requireProject(id) {
     const pr = this.getProject(id);
     if (!pr) { const e = new Error(`Project not found: ${id}`); e.code = 'PROJECT_NOT_FOUND'; throw e; }
@@ -279,6 +301,7 @@ export class LsgStore {
   updateNode(id, patch, expectedVersion = null) {
     return this.tx(() => { const updated=this.updateNodeInTransaction(id,patch,expectedVersion); this.bumpGraphVersion(updated.project_id); return updated; });
   }
+  deleteNodeInTransaction(id) { this.db.prepare('DELETE FROM nodes WHERE id=?').run(id); }
 
   insertEdge(e) {
     const edge = { id:e.id||newId('edge'), project_id:e.project_id, source_id:e.source_id, target_id:e.target_id, type:e.type||'depends_on', origin:e.origin||'system', created_at:e.created_at||nowIso(), metadata:e.metadata||{} };
@@ -292,6 +315,13 @@ export class LsgStore {
     return edge;
   }
   listEdges(projectId) { return this.db.prepare('SELECT * FROM edges WHERE project_id=? ORDER BY created_at,id').all(projectId).map(r=>({...r,metadata:p(r.metadata_json,{}),metadata_json:undefined})); }
+
+  getNodeDocument(nodeId,kind='implementation_plan') { return this.db.prepare('SELECT * FROM node_documents WHERE node_id=? AND kind=?').get(nodeId,kind)||null; }
+  upsertNodeDocument(input) {
+    const current=this.getNodeDocument(input.node_id,input.kind||'implementation_plan');const t=nowIso();
+    if(current){if(input.expected_version!=null&&current.version!==input.expected_version){const e=new Error(`Document version conflict: expected ${input.expected_version}, current ${current.version}`);e.code='DOCUMENT_VERSION_CONFLICT';e.current_document_version=current.version;throw e;}this.db.prepare('UPDATE node_documents SET file_name=?,markdown=?,sha256=?,version=version+1,actor=?,updated_at=? WHERE id=?').run(input.file_name,input.markdown,input.sha256,input.actor||'user',t,current.id);return this.getNodeDocument(input.node_id,input.kind||'implementation_plan');}
+    const id=newId('doc');this.db.prepare('INSERT INTO node_documents(id,project_id,node_id,kind,file_name,markdown,sha256,version,actor,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(id,input.project_id,input.node_id,input.kind||'implementation_plan',input.file_name,input.markdown,input.sha256,1,input.actor||'user',t,t);return this.getNodeDocument(input.node_id,input.kind||'implementation_plan');
+  }
 
   createImportSession(s) {
     const t=nowIso(), id=s.id||newId('import');
