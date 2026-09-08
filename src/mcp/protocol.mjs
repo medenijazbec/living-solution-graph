@@ -28,7 +28,7 @@ const promptDefs=[
   {name:'implement_next_gap',description:'Select and implement the next bounded incomplete graph node; do not claim completion without updating the implementation switch and evidence.',arguments:[{name:'project_id',required:true}]},
   {name:'audit_project',description:'Audit the whole project graph for incomplete, stale, unverified, contradictory, or missing coverage.',arguments:[{name:'project_id',required:true}]},
   {name:'apply_domain_starter_coverage',description:'Detect and apply domain-aware starter coverage before generic edge-case expansion.',arguments:[{name:'project_id',required:true},{name:'import_session_id',required:false}]},
-  {name:'provide_semantic_feature_list',description:'Have Codex build a reviewable, source-linked semantic implementation backlog and edge-case set.',arguments:[{name:'project_id',required:true},{name:'max_features',required:false}]}
+  {name:'provide_semantic_feature_list',description:'Have Codex build a reviewable, source-linked semantic implementation backlog and edge-case set. Codex treats “use lsg”, “@lsg”, and “run lsg” as an invocation of this server.',arguments:[{name:'project_id',required:true},{name:'max_features',required:false}]}
 ];
 
 export class McpProtocol {
@@ -50,7 +50,7 @@ export class McpProtocol {
     if(modern){const err=this.validateModernRequest(msg);if(err)return errorEnvelope(id,err.code,err.message,err.data);}
     try{
       if(method==='server/discover'){
-        return resultEnvelope(id,modernCache({supportedVersions:[MODERN_PROTOCOL],capabilities:{tools:{},resources:{},prompts:{}},instructions:'Living Solution Graph: import plans, expand domain/edge-case coverage, update explicit implementation and verification state, attach evidence, and operate against the completion frontier.'},'public',300000),true);
+        return resultEnvelope(id,modernCache({supportedVersions:[MODERN_PROTOCOL],capabilities:{tools:{},resources:{},prompts:{}},instructions:'Living Solution Graph: import plans, expand domain/edge-case coverage, update explicit implementation and verification state, attach evidence, and operate against the completion frontier. In Codex, “use lsg”, “@lsg”, and “run lsg” invoke this server by convention.'},'public',300000),true);
       }
       if(method==='initialize'){
         const requested=msg.params?.protocolVersion;const selected=LEGACY_PROTOCOLS.includes(requested)?requested:LEGACY_PROTOCOL;
@@ -125,7 +125,7 @@ export class McpProtocol {
     else if(name==='implement_next_gap') text=`For project ${a.project_id}, select the next item from solution.get_frontier. Inspect its dependencies and edge cases, implement it end-to-end, test it, record evidence, set implemented=true only when the implementation exists, then verify separately.`;
     else if(name==='audit_project') text=`Audit project ${a.project_id}. Traverse the full graph with solution.audit_implementation_status and solution.find_gaps. Identify missing architecture, edge cases, tests, stale nodes and unverified claims. Insert any newly discovered edge cases with solution.add_edge_case.`;
     else if(name==='apply_domain_starter_coverage') text=`For project ${a.project_id}, inspect or detect applicable starter packs, apply missing domain baseline coverage, preserve not-applicable/conditional decisions, then run a graph audit.`;
-    else if(name==='provide_semantic_feature_list') text=`Provide the semantic feature list for project ${a.project_id}. First call solution.prepare_semantic_feature_set with max_features ${a.max_features||25}. Use its source-node catalog and proposal contract to author evidence-linked implementation units, dependencies, acceptance criteria, and edge cases. Call solution.stage_semantic_feature_set, present the staged proposal and diff for review, and do not call solution.commit_semantic_feature_set unless the user explicitly approves the staged result.`;
+    else if(name==='provide_semantic_feature_list') text=`Provide the semantic feature list for project ${a.project_id}. First call solution.prepare_semantic_feature_set with max_features ${a.max_features||25}. Use its source-node catalog and proposal contract to author evidence-linked implementation units, dependencies, acceptance criteria, and edge cases. Call solution.stage_semantic_feature_set, present the staged proposal and diff for review, and do not call solution.commit_semantic_feature_set unless the user explicitly approves the staged result. In Codex, the user phrases “use lsg”, “@lsg”, and “run lsg” are explicit invocations of this workflow.`;
     else return errorEnvelope(id,-32602,`Unknown prompt: ${name}`);
     const res={description:promptDefs.find(p=>p.name===name)?.description,messages:[{role:'user',content:{type:'text',text}}]};return resultEnvelope(id,modern?modernCache(res,'private',0):res,modern);
   }

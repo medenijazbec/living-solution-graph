@@ -130,7 +130,7 @@ repeat
 
 ## Semantic feature-list workflow
 
-Ask Codex: **“Use LSG to provide the semantic feature list for this project.”** Codex calls `solution.prepare_semantic_feature_set`, authors an evidence-linked proposal, calls `solution.stage_semantic_feature_set`, and presents the proposed implementation units for review. The live graph changes only after `solution.commit_semantic_feature_set` is explicitly called.
+Ask Codex: **“Use the `living_solution_graph` MCP server to provide the semantic feature list for this project.”** The phrases **“use lsg”**, **“@lsg”**, and **“run lsg”** are Codex invocation conventions for this registered server. They instruct Codex to use LSG; they are not wire-level MCP syntax. Codex calls `solution.prepare_semantic_feature_set`, authors an evidence-linked proposal, calls `solution.stage_semantic_feature_set`, and presents the proposed implementation units for review. The live graph changes only after `solution.commit_semantic_feature_set` is explicitly called.
 
 Semantic features are concise implementation units rather than one node per Markdown bullet. Each includes a stable key, priority, source-node references, acceptance criteria, dependencies, and scoped edge cases. A later plan import marks semantic runs stale when its source hash changes, requiring a fresh review before replacement.
 
