@@ -7,6 +7,7 @@ const modernMeta={"io.modelcontextprotocol/protocolVersion":MODERN_PROTOCOL,"io.
 async function mcp(base,id,method,params={}){const principal=method==='tools/call'?params.name:method==='resources/read'?params.uri:method==='prompts/get'?params.name:'';const body={jsonrpc:'2.0',id,method,params:{...params,_meta:{...(params._meta||{}),...modernMeta}}};const h={authorization:'Bearer test-token','content-type':'application/json','mcp-protocol-version':MODERN_PROTOCOL,'mcp-method':method};if(principal)h['mcp-name']=principal;const r=await fetch(base+'/mcp',{method:'POST',headers:h,body:JSON.stringify(body)});return{r,j:await r.json()};}
 
 test('HTTP E2E: MCP bootstrap -> graph -> edge case -> implementation -> verification -> audit -> UI',async()=>{const x=await httpRuntime();try{
+  const ui=await (await fetch(x.base+'/')).text();assert.match(ui,/Semantic backlog/);const uiJs=await (await fetch(x.base+'/app.js')).text();assert.match(uiJs,/semantic\/edge-cases/);
   let q=await mcp(x.base,1,'server/discover');assert.equal(q.r.status,200);assert.ok(q.j.result.supportedVersions.includes(MODERN_PROTOCOL));
   q=await mcp(x.base,2,'tools/call',{name:'solution.create_project',arguments:{project_id:'web1',title:'Payments site'}});assert.equal(q.j.result.structuredContent.id,'web1');
   const project=(await jfetch(x.base+'/api/projects/web1')).j;

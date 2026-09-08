@@ -32,6 +32,8 @@ export function buildRegistry(service){
   add('solution.get_semantic_feature_list','Return active Codex-authored implementation units ordered by priority with dependencies, edge cases, and acceptance tests.',obj({project_id:s},['project_id']),a=>service.getSemanticFeatureList(a));
   add('solution.get_semantic_edge_cases','Return semantic edge cases globally or for one semantic feature ID/key.',obj({project_id:s,feature_id:s,semantic_key:s},['project_id']),a=>service.getSemanticEdgeCases(a));
   add('solution.get_semantic_diff','Return a staged or committed semantic proposal diff.',obj({project_id:s,run_id:s},['project_id','run_id']),a=>service.getSemanticDiff(a));
+  add('solution.resolve_semantic_feature_reference','Resolve a human reference such as F1, F1.2, or 1 to its semantic feature, descendants, and edge cases before staging an update.',obj({project_id:s,reference:s},['project_id','reference']),a=>service.resolveSemanticFeatureReference(a));
+  add('solution.reindex_semantic_features','Assign missing stable F-number display IDs to active semantic features without changing their source evidence.',obj({project_id:s,actor:s},['project_id']),a=>service.reindexSemanticFeatures(a));
 
   add('memory.remember','Store durable user history as a versionable memory atom.',obj({user_id:s,text:s,kind:s,subject:s,value:s,scope:s,project_id:s,confidence:n,salience:n,source:s,metadata:{type:'object'}},['user_id']),a=>service.remember(a));
   add('memory.search','Search active user memory atoms.',obj({user_id:s,project_id:s,query:s,include_inactive:b,limit:i},['user_id']),a=>service.memorySearch(a));

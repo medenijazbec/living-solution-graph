@@ -151,6 +151,8 @@ export class LsgService {
   getSemanticFeatureList(input){return this.semantic.listFeatures(input.project_id);}
   getSemanticEdgeCases(input){return this.semantic.listEdgeCases(input.project_id,input);}
   getSemanticDiff(input){return this.semantic.getDiff(input.project_id,input.run_id);}
+  resolveSemanticFeatureReference(input){return this.semantic.resolveReference(input.project_id,input.reference);}
+  reindexSemanticFeatures(input){return this.semantic.reindex(input.project_id,input.actor);}
 
   remember(input){
     if(input.text && !input.value) return this.store.insertMemory({user_id:input.user_id,kind:input.kind||'note',subject:input.subject||'user_input',value:input.text,scope:input.scope||'global',project_id:input.project_id||null,confidence:input.confidence??0.85,salience:input.salience??0.55,source:input.source||'conversation'});

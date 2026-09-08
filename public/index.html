@@ -37,7 +37,11 @@
       <div class="toolbar">
         <strong id="projectTitle">No project selected</strong>
         <button id="refresh">Refresh</button>
-        <label>View <select id="graphLayer"><option value="semantic">Semantic implementation</option><option value="source">Source trace</option></select></label>
+        <div class="tabs" role="tablist" aria-label="Graph view">
+          <button id="semanticTab" class="tab active" type="button" role="tab" aria-selected="true">Semantic backlog</button>
+          <button id="sourceTab" class="tab" type="button" role="tab" aria-selected="false">Source trace</button>
+        </div>
+        <span id="semanticSummary" class="semanticSummary"></span>
         <label><input id="showOther" type="checkbox"/> Show non-feature nodes</label>
       </div>
       <div id="graph" class="graph"><div class="empty">Import a plan to generate the connected solution graph.</div></div>
