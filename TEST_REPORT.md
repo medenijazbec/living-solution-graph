@@ -1,5 +1,16 @@
 # LSG 6.1.0 release verification
 
+## Orbital workspace update — 2026-09-13
+
+- 40 automated tests passed; smoke, package verification (32 JavaScript files) and isolated doctor passed.
+- Dense Chromium graph fixture passed: 81 cards, drag/zoom/pan, persistence, non-overlap and activity pulse checks.
+- Orbital Chromium suite passed: compact buttons, project creation, larger Projects heading, import spacing, collapse/narrow layout, rotating Earth, visible star pixels, 8192px texture, pause/reduced motion, local-only asset requests, texture/upload-error fallback, simulated 1024px GPU limit and actual WebGL context loss.
+- Image source: NASA VIIRS 10800px composite, compressed to 8192 × 4096 WebP quality 82 (6,761,404 bytes). User requested higher detail after the initial smaller texture; no Moon assets are distributed.
+- Independent read-only code review found two medium issues (collapsed sidebar padding and GPU upload errors); both were reproduced in tests and fixed. Follow-up review found no remaining high/medium issues.
+- Hidden-tab animation cancellation was code-reviewed; the browser suite does not simulate actual tab occlusion. No graph or database migration is part of this visual change.
+
+## Original release checks
+
 Tested on Windows with Node.js 22.16.0, 2026-09-12.
 
 - Automated suite: 40 passing tests, including HTTP semantic prepare → stage → diff → explicit commit → context/frontier/counts.

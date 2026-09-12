@@ -16,6 +16,7 @@
     "stdio": "node src/cli.mjs stdio",
     "test": "node --test test/*.test.mjs",
     "test:browser": "node scripts/browser-workspace.mjs",
+    "test:orbital": "node scripts/browser-orbital.mjs",
     "test:e2e": "node --test test/e2e.test.mjs",
     "test:protocol": "node --test test/mcp-protocol.test.mjs",
     "smoke": "node scripts/smoke.mjs",

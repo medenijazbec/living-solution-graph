@@ -2,6 +2,8 @@
 
 ## Approved direction
 
+Update approved 2026-09-13 during implementation: use sharper Earth/cloud imagery than the initial 4K attempt and a more visible star field. Deliver an 8K compressed composite, permitting up to 8 MiB of image payload; this supersedes the original 1 MiB target below. Downsample on devices with smaller GPU texture limits.
+
 Use the user's latest reference: a close curved Earth horizon across the lower portion of the viewport, blue atmospheric glow, clouds and a black star field above. Earth rotates slowly under a fixed camera. Remove the Moon, lunar terrain and lunar shadows entirely. This is a live rendered scene, not a screenshot or video background.
 
 Keep LSG functional and legible: dark translucent interface panels, white card outlines and connections, existing graph dots, draggable cards, project selection, import controls, Markdown plans and progress tools. No graph data or MCP behavior changes are needed.

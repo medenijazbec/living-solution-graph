@@ -1,0 +1,45 @@
+/* Compact controls; graph cards and rendered Markdown retain their type scale. */
+body button {font-size:11px;line-height:16px;padding:5px 9px;min-height:28px;}
+body input,body select,body textarea {font-size:12px;padding:6px 8px;}
+body button:focus-visible {outline:2px solid #b7d9ff;outline-offset:3px;}
+header p {font-size:11px;}
+.toolbar {min-height:44px;padding:7px 12px;gap:7px;}
+.toolbar strong {font-size:12px;}
+.toolbar label,.semanticSummary,.workspaceControls,.workspaceBinding {font-size:10px;}
+.workspaceControls {padding:7px 12px;gap:7px;}
+.progressSummary {font-size:10px;padding:6px 12px;}
+.tabs .tab {font-size:10px;padding:4px 8px;min-height:26px;}
+#leftPanel {padding:16px 12px;}
+#appShell.leftCollapsed #leftPanel {padding:0;border:0;}
+@media(max-width:900px) {#leftPanel {padding:0;border:0;}}
+#leftPanel section:first-of-type h2 {font-size:15px;letter-spacing:.025em;margin:3px 36px 16px 0;}
+#leftPanel .row {display:flex;align-items:center;gap:8px;}
+#newTitle {flex:1;min-width:0;width:0;height:30px;}
+#createProject {flex:0 0 auto;white-space:nowrap;height:30px;}
+#projectSelect {margin-top:8px;font-size:12px;}
+#planFile {display:block;width:100%;min-width:0;font-size:10px;}
+input[type=file]::file-selector-button {font:inherit;border:1px solid #ffffff45;border-radius:4px;padding:4px 6px;background:#1b2633;color:#eef5ff;margin-right:6px;}
+#planText {display:block;width:100%;min-height:150px;margin:10px 0;resize:vertical;font-size:12px;line-height:1.6;}
+#importSummary:empty {display:none;}
+#importSummary {margin-top:10px;}
+#collapseLeft {width:27px;height:29px;min-height:29px;padding:3px;}
+.auditCard {padding:8px;}
+.auditCard b {font-size:16px;}
+.auditCard span {font-size:10px;}
+@media(pointer:coarse) {body button,.tabs .tab {min-height:40px;}#createProject {height:40px;}}
+
+/* One continuous orbital scene, visible through all panel surfaces. */
+body {isolation:isolate;background:#02050a;}
+#orbitalBackground {position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 115%,#173d62 0%,#050a13 50%,#010307 80%);}
+body>header {background:rgba(5,10,17,.76);}
+body>main {background:transparent;}
+body .leftPanel,body .details {background:rgba(8,15,25,.76);}
+body .workspace {background:transparent;}
+body .toolbar,body .workspaceControls {background:rgba(8,15,25,.72);}
+body .progressSummary {background:rgba(7,14,24,.7);}
+body .graph {background-color:rgba(4,10,18,.50);}
+body .cards .node {background:rgba(13,23,36,.94);}
+body .auditCard {background:rgba(8,17,29,.82);}
+body input,body select,body textarea,body .markdown-body {background:rgba(6,14,24,.9);}
+body .tabs {background:rgba(6,14,24,.82);}
+#toggleOrbit {color:#bdd5eb;white-space:nowrap;}

@@ -7,8 +7,10 @@
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/graph-ui.css" />
   <link rel="stylesheet" href="/workspace.css" />
+  <link rel="stylesheet" href="/orbital.css" />
 </head>
 <body>
+  <canvas id="orbitalBackground" aria-hidden="true" data-state="loading"></canvas>
   <header>
     <div>
       <h1>Living Solution Graph</h1>
@@ -41,6 +43,7 @@
       <div class="toolbar">
         <strong id="projectTitle">No project selected</strong>
         <button id="refresh" type="button">Refresh</button>
+        <button id="toggleOrbit" type="button" aria-pressed="false" title="Pause decorative Earth animation">Pause Earth</button>
         <button id="resetLayout" type="button">Tidy layout</button>
         <div class="tabs" role="tablist" aria-label="Graph view">
           <button id="semanticTab" class="tab active" type="button" role="tab" aria-selected="true">Semantic backlog</button>
@@ -63,5 +66,6 @@
     </aside>
   </main>
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/orbital.js"></script>
 </body>
 </html>

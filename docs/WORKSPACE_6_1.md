@@ -24,6 +24,10 @@ Declare workspace-relative files/directories using `solution.set_node_file_links
 
 ## Graph and live activity
 
+The workspace now has a live Earth-from-orbit background behind translucent dark panels, with an 8K compressed NASA Earth/cloud texture, a generated star field and layered atmospheric glow. There is no Moon. The image is bundled locally (about 6.4 MiB); opening the UI makes no external imagery requests. `Pause Earth` stops the decoration independently of graph activity, remembers your preference and respects reduced-motion settings. Hidden tabs stop the animation loop. Unsupported WebGL or failed textures retain a usable dark workspace. Low-limit GPUs downsample the texture before upload. See `public/assets/earth/ATTRIBUTION.md` for source and compression details.
+
+Buttons and secondary text are more compact, Projects is more prominent, and the creation/import controls have consistent spacing. The graph still has its dot grid and white cards/connections. Run `npm run test:orbital` alongside the dense-graph browser suite for visual-control and rendering checks.
+
 Drag cards freely; the outlined preview shows their collision-free drop position. Drag the background to pan. Wheel/pinch zoom around the pointer; buttons, Fit and the minimap also navigate. Viewport and positions are local to each project/view. Tidy layout resets placement, not dependencies or importance. White routed edges may cross other edges in general graphs; selecting a card emphasizes its connections.
 
 Live activity is off by default and resets off after restart. Enable it for the selected project only when wanted. It watches only explicitly mapped paths, excluding secrets, ignored files, generated output, dependencies, Git internals and database files. Symlinks escaping the workspace are rejected. Events contain node IDs, kind, timestamp and known actor, never file contents. They are debounced, bounded in memory and discarded on disable.

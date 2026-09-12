@@ -10,7 +10,7 @@ import { validateArgs } from '../mcp/registry.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const publicDir=path.resolve(here,'../../public');
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
+const mime={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.png':'image/png','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
 
 function json(res,status,data,extra={}){const body=JSON.stringify(data);res.writeHead(status,{'content-type':'application/json; charset=utf-8','content-length':Buffer.byteLength(body),...extra});res.end(body);}
 function text(res,status,body,type='text/plain; charset=utf-8'){res.writeHead(status,{'content-type':type,'content-length':Buffer.byteLength(body)});res.end(body);}

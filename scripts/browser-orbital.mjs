@@ -1,0 +1,75 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {LsgStore} from '../src/core/db.mjs';
+import {LsgService} from '../src/core/service.mjs';
+import {McpProtocol} from '../src/mcp/protocol.mjs';
+import {createHttpServer} from '../src/http/server.mjs';
+import {loadConfig} from '../src/core/config.mjs';
+
+const {chromium}=await import(process.env.LSG_PLAYWRIGHT_MODULE?pathToFileURL(process.env.LSG_PLAYWRIGHT_MODULE).href:'playwright');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-orbital-'));
+const store=new LsgStore(path.join(dir,'db.sqlite')),service=new LsgService(store,{workspaceRoot:dir});
+const config={...loadConfig({LSG_DB_PATH:store.dbPath}),port:0,rateLimitPerMinute:10000,allowedHosts:[],allowedOrigins:[]};
+const server=createHttpServer({service,protocol:new McpProtocol(service),config,log:()=>{}});
+const address=await server.listen(),base=`http://127.0.0.1:${address.port}`;
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[],external=[];
+page.on('pageerror',e=>errors.push(e.message));
+page.on('request',r=>{if(!r.url().startsWith(base)&&!r.url().startsWith('data:'))external.push(r.url());});
+try{
+  await page.goto(base);await page.waitForSelector('#createProject');
+  for(const width of [1600,1100]){
+    await page.setViewportSize({width,height:1000});
+    const {create,input,panel}=await page.evaluate(()=>Object.fromEntries(Object.entries({create:'createProject',input:'newTitle',panel:'leftPanel'}).map(([key,id])=>[key,document.getElementById(id).getBoundingClientRect().toJSON()])));
+    assert.ok(create.height<=32,`Create is oversized: ${create.height}px`);
+    assert.ok(create.x>=input.x+input.width+7,'Create overlaps input');
+    assert.ok(create.x+create.width<=panel.x+panel.width-8,JSON.stringify({issue:'Create overflows panel',width,create,input,panel}));
+    assert.ok(await page.locator('#leftPanel h2').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize))>=15,'Projects heading too small');
+    const textarea=await page.locator('#planText').boundingBox(),preview=await page.locator('#previewPlan').boundingBox();
+    assert.ok(preview.y>=textarea.y+textarea.height+8,'Import actions touch textarea');
+  }
+  console.log(JSON.stringify({ok:true,tested:['compact buttons','Create containment','Projects heading','import spacing']}));
+  await page.locator('#newTitle').fill('Orbital UI fixture');await page.locator('#createProject').click();await page.waitForFunction(()=>document.getElementById('projectTitle').textContent.includes('Orbital UI fixture'));
+  await page.setViewportSize({width:1600,height:1000});
+  await page.locator('#collapseLeft').click();
+  await page.setViewportSize({width:850,height:1000});
+  await page.waitForFunction(()=>document.querySelector('#appShell').getAnimations().every(a=>a.playState!=='running'));
+  assert.ok((await page.locator('#leftPanel').boundingBox()).width<=1,'Narrow viewport leaves sidebar strip');
+  await page.setViewportSize({width:1600,height:1000});
+  await page.waitForFunction(()=>document.querySelector('#appShell').getAnimations().every(a=>a.playState!=='running'));
+  assert.ok((await page.locator('#leftPanel').boundingBox()).width<=1,'Collapsed sidebar leaves padding over graph');
+  await page.locator('#collapseLeft').click();
+  await page.waitForSelector('#orbitalBackground[data-state="running"]',{timeout:5000});
+  // Isolate the decorative pixels; application panels otherwise cover the canvas screenshot.
+  await page.addStyleTag({content:'body>header,body>main{visibility:hidden!important}'});
+  const canvas=page.locator('#orbitalBackground');
+  const first=await canvas.screenshot();await page.waitForTimeout(1200);
+  assert.notDeepEqual(await canvas.screenshot(),first,'Earth does not rotate');
+  const stars=await page.evaluate(async encoded=>{const image=new Image();image.src='data:image/png;base64,'+encoded;await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);const pixels=ctx.getImageData(0,0,c.width,Math.floor(c.height*.4)).data;let bright=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]+pixels[i+1]+pixels[i+2]>180)bright++;return bright;},first.toString('base64'));
+  assert.ok(stars>=400,`Star field is too faint: ${stars} visible pixels`);
+  const textureWidth=await page.evaluate(async()=>{const image=new Image();image.src='/assets/earth/earth-viirs.webp';await image.decode();return image.naturalWidth;});assert.ok(textureWidth>=8192,'Earth/cloud texture below requested high detail');
+  await page.locator('style').last().evaluate(el=>el.remove());
+  await page.locator('#toggleOrbit').click();
+  await page.waitForSelector('#orbitalBackground[data-state="paused"]');
+  const paused=await canvas.screenshot();await page.waitForTimeout(250);
+  assert.deepEqual(await canvas.screenshot(),paused,'Paused background moves');
+  await page.locator('#toggleOrbit').click();await page.waitForSelector('#orbitalBackground[data-state="running"]');
+  await page.emulateMedia({reducedMotion:'reduce'});await page.waitForSelector('#orbitalBackground[data-state="paused"]');
+  const reduced=await canvas.screenshot();await page.waitForTimeout(250);
+  assert.deepEqual(await canvas.screenshot(),reduced,'Reduced-motion background moves');
+  await page.screenshot({path:path.join(dir,'orbital-ui.png'),fullPage:true});
+  await page.addStyleTag({content:'body>header,body>main{visibility:hidden!important}'});
+  await page.screenshot({path:path.join(dir,'orbital-scene.png')});
+  const texture=await fetch(base+'/assets/earth/earth-viirs.webp');assert.equal(texture.headers.get('content-type'),'image/webp');assert.ok(Number(texture.headers.get('content-length'))<8388608);
+  const fallback=await browser.newPage();await fallback.route('**/assets/earth/*.webp',route=>route.abort());await fallback.goto(base);
+  await fallback.waitForSelector('#orbitalBackground[data-state="fallback"]');assert.equal(await fallback.locator('#createProject').isEnabled(),true);await fallback.close();
+  const uploadError=await browser.newPage();await uploadError.addInitScript(()=>{const original=WebGLRenderingContext.prototype.texImage2D;WebGLRenderingContext.prototype.texImage2D=function(){return original.call(this,this.TEXTURE_2D,0,this.RGB,-1,-1,0,this.RGB,this.UNSIGNED_BYTE,null);};});await uploadError.goto(base);await uploadError.waitForSelector('#orbitalBackground[data-state="fallback"]',{timeout:5000});await uploadError.close();
+  const limited=await browser.newPage();await limited.addInitScript(()=>{const parameter=WebGLRenderingContext.prototype.getParameter,upload=WebGLRenderingContext.prototype.texImage2D;WebGLRenderingContext.prototype.getParameter=function(name){return name===this.MAX_TEXTURE_SIZE?1024:parameter.call(this,name);};WebGLRenderingContext.prototype.texImage2D=function(...args){const image=args[5];if(image?.width>1024)return upload.call(this,this.TEXTURE_2D,0,this.RGB,-1,-1,0,this.RGB,this.UNSIGNED_BYTE,null);return upload.apply(this,args);};});await limited.goto(base);await limited.waitForSelector('#orbitalBackground[data-state="running"]');await limited.close();
+  await page.locator('#orbitalBackground').evaluate(el=>el.getContext('webgl').getExtension('WEBGL_lose_context').loseContext());await page.waitForSelector('#orbitalBackground[data-state="fallback"]');
+  assert.deepEqual(external,[],'Unexpected external runtime requests');
+  console.log(JSON.stringify({ok:true,tested:['rotation','visible stars','8K Earth/cloud detail','pause','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
+  assert.deepEqual(errors,[]);
+}finally{await browser.close();await server.close();store.close();}

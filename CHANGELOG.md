@@ -1,5 +1,12 @@
 # Changelog
 
+## Workspace visual update — 2026-09-13
+
+- Added a local 8K NASA Earth/cloud orbital background, layered atmospheric glow and procedural stars, with pause and reduced-motion controls.
+- Kept graph dots, white connections and dragging; made panel surfaces translucent.
+- Compacted buttons and secondary text, enlarged Projects, and fixed Create/import spacing and collapsed sidebar padding.
+- Added GPU-limit downsampling, WebGL failure fallback, image MIME types and a real-browser orbital regression suite.
+
 ## 6.1.0 — 2026-09-12
 
 - Added shared recursive completion counters, configurable importance, sequential work claims and evidence-based review.
