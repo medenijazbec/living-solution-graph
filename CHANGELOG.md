@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 6.1.0 — 2026-09-12
+
+- Added shared recursive completion counters, configurable importance, sequential work claims and evidence-based review.
+- Added isolated project memory, revision history, mapped Git commit associations, and transactional schema v9 migration.
+- Added opt-in ephemeral mapped-file activity with authenticated project-scoped SSE.
+- Replaced graph placement with a zoomable, pannable canvas, free dragging, collision settlement, minimap and routed white connections.
+- Preserved existing databases on upgrade; new Windows installations default to LocalAppData.
+
+### Semantic foundation
 
 - Added staged Codex-authored semantic feature sets with source traceability, dependencies, acceptance tests, and scoped edge cases.
 - Added semantic MCP tools, prompt workflow, semantic-first completion frontier/context, HTTP endpoints, and graph UI layer switching.

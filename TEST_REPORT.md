@@ -1,3 +1,20 @@
+# LSG 6.1.0 release verification
+
+Tested on Windows with Node.js 22.16.0, 2026-09-12.
+
+- Automated suite: 40 passing tests, including HTTP semantic prepare → stage → diff → explicit commit → context/frontier/counts.
+- Smoke test: passed (112 created nodes, 102 tracked).
+- Package syntax verification: passed.
+- Doctor: passed with an isolated test database.
+- Real Chromium browser: 81-card Eden-inspired dense fixture; non-overlapping placement, free drag, reload/filter persistence, zoom/pan, new-card placement preserving existing cards, activity pulses without layout movement, disable and authenticated SSE.
+- Migration rehearsal: schema 8 → 9 on a consistent copy of the installed Eden database; all 3,355 node IDs, versions and metadata preserved; SQLite integrity and foreign-key checks passed. Original database not changed by rehearsal.
+
+These checks do not claim that Eden gameplay is implemented. Live filesystem reads outside LSG are not observable, and general graph connections can still cross other connections.
+
+---
+
+## Historical 6.0.0 report
+
 # Living Solution Graph v6.0.0 — Internal Test Report
 
 **Release:** 6.0.0  

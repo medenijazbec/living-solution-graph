@@ -1,4 +1,6 @@
-# Living Solution Graph MCP v6.0.0
+# Living Solution Graph MCP v6.1.0
+
+For progress tools, project memory, work claims and the new graph canvas, see [Workspace 6.1](docs/WORKSPACE_6_1.md).
 
 A runnable MCP server and persistent problem-solving runtime that turns ordinary Markdown plans into a connected, versioned solution graph, lets models add missing edge cases, tracks explicit implementation/verification switches, audits the entire graph, and compiles relevant project + user history context for model calls.
 

@@ -1,6 +1,6 @@
 {
   "name": "living-solution-graph-mcp",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "description": "Production MCP server and Living Solution Graph runtime for evolving plans into verified implementation graphs.",
   "type": "module",
   "private": false,
@@ -15,6 +15,7 @@
     "start": "node src/cli.mjs http",
     "stdio": "node src/cli.mjs stdio",
     "test": "node --test test/*.test.mjs",
+    "test:browser": "node scripts/browser-workspace.mjs",
     "test:e2e": "node --test test/e2e.test.mjs",
     "test:protocol": "node --test test/mcp-protocol.test.mjs",
     "smoke": "node scripts/smoke.mjs",

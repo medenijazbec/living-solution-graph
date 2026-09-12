@@ -1,0 +1,37 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {LsgStore} from '../src/core/db.mjs';
+import {LsgService} from '../src/core/service.mjs';
+import {McpProtocol} from '../src/mcp/protocol.mjs';
+import {createHttpServer} from '../src/http/server.mjs';
+import {loadConfig} from '../src/core/config.mjs';
+
+const modulePath=process.env.LSG_PLAYWRIGHT_MODULE;
+const {chromium}=await import(modulePath?pathToFileURL(modulePath).href:'playwright');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-browser-')),store=new LsgStore(path.join(dir,'data','db.sqlite')),service=new LsgService(store,{workspaceRoot:dir}),protocol=new McpProtocol(service);
+const config={...loadConfig({LSG_DB_PATH:store.dbPath}),port:0,rateLimitPerMinute:10000,allowedHosts:[],allowedOrigins:[],apiToken:'browser-token'};
+service.createProject({project_id:'eden-fixture',title:'Eden Above — dense browser fixture',metadata:{workspace_root:dir}});
+const names=['Bunker opening','Frame assembly','Physical cockpit','Persistent expeditions','Gustav deployment','Return Cradle','Goliath Rig','Catch / Release'];const roots=[];
+for(let i=0;i<80;i++){const node=store.insertNode({project_id:'eden-fixture',type:i<24?'feature':'edge_case',title:`${names[i%names.length]} ${i+1}: ${'variable height requirement '.repeat(i%4)}`,parent_id:i<24?null:roots[i%24].id,metadata:{layer:'semantic',semantic_key:`fixture.${i}`,display_id:i<24?`F${i+1}`:`F${i%24+1}.E${i}`,priority:'P0',acceptance_criteria:['Observable outcome'],non_goals:[]}});if(i<24)roots.push(node);else store.insertEdge({project_id:'eden-fixture',source_id:roots[i%24].id,target_id:node.id,type:'has_edge_case'});}
+fs.mkdirSync(path.join(dir,'src'));fs.writeFileSync(path.join(dir,'src','frame.txt'),'fixture source');service.activity.links({project_id:'eden-fixture',node_id:roots[0].id,paths:['src/frame.txt']});
+const app=createHttpServer({service,protocol,config,log:()=>{}});const addr=await app.listen(),base=`http://127.0.0.1:${addr.port}`;const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+try{
+  await page.addInitScript(()=>sessionStorage.setItem('lsg_api_token','browser-token'));
+  await page.goto(base+'/?workspace='+encodeURIComponent(dir));await page.waitForSelector('.cards .node');await page.waitForFunction(()=>document.querySelectorAll('.cards .node').length===80);await page.waitForTimeout(300);
+  const noOverlap=()=>page.evaluate(()=>{const boxes=[...document.querySelectorAll('.cards .node')].map(e=>e.getBoundingClientRect());for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top)return false;}return true;});
+  assert.equal(await noOverlap(),true);assert.ok(await page.locator('.worldEdges path').count()>0);assert.equal(await page.locator('#activityToggle').isChecked(),false);
+  const card=page.locator('.cards .node').first(),before=await card.boundingBox();await page.mouse.move(before.x+40,before.y+30);await page.mouse.down();await page.mouse.move(before.x+130,before.y+110,{steps:14});await page.mouse.up();await page.waitForTimeout(100);assert.equal(await noOverlap(),true);const transform=await card.evaluate(el=>el.style.transform);
+  await page.reload();await page.waitForSelector('.cards .node');await page.waitForTimeout(250);assert.equal(await page.locator('.cards .node').first().evaluate(el=>el.style.transform),transform);
+  await page.locator('#zoomOut').click();assert.ok(Number(await page.locator('#graph').getAttribute('data-zoom'))<1);await page.locator('#zoomIn').click();
+  const graph=await page.locator('#graph').boundingBox();const worldBefore=await page.locator('.world').evaluate(el=>el.style.transform);await page.mouse.move(graph.x+graph.width-240,graph.y+60);await page.mouse.down({button:'middle'});await page.mouse.move(graph.x+graph.width-170,graph.y+100,{steps:8});await page.mouse.up({button:'middle'});assert.notEqual(await page.locator('.world').evaluate(el=>el.style.transform),worldBefore);
+  await page.locator('#activityToggle').check();await page.waitForTimeout(200);const positionsBefore=await page.locator('.cards .node').evaluateAll(els=>els.map(e=>e.style.transform));fs.writeFileSync(path.join(dir,'src','frame.txt'),'changed locally');await page.waitForSelector('.node.livePulse');assert.deepEqual(await page.locator('.cards .node').evaluateAll(els=>els.map(e=>e.style.transform)),positionsBefore);await page.locator('#activityToggle').uncheck();assert.equal(service.activity.sessions.size,0);
+  const savedBefore=await page.locator('.cards .node').first().evaluate(el=>el.style.transform);
+  await page.locator('#importanceFilter').selectOption('P3');assert.equal(await page.locator('.cards .node').count(),0);await page.locator('#importanceFilter').selectOption('');await page.waitForSelector('.cards .node');assert.equal(await page.locator('.cards .node').first().evaluate(el=>el.style.transform),savedBefore);
+  store.insertNode({project_id:'eden-fixture',type:'feature',title:'New committed implementation unit',metadata:{layer:'semantic',semantic_key:'fixture.new',display_id:'F25',priority:'P1'}});store.bumpGraphVersion('eden-fixture');await page.waitForFunction(()=>document.querySelectorAll('.cards .node').length===81);assert.equal(await noOverlap(),true);assert.equal(await page.locator('.cards .node').first().evaluate(el=>el.style.transform),savedBefore);
+  await page.locator('#fitGraph').click();assert.ok(Number(await page.locator('#graph').getAttribute('data-zoom'))>=.15);assert.equal(await noOverlap(),true);
+  const unauthorized=await fetch(base+'/api/projects/eden-fixture/activity/stream');assert.equal(unauthorized.status,401);
+  await page.screenshot({path:path.join(dir,'workspace.png'),fullPage:true});assert.deepEqual(errors,[]);console.log(JSON.stringify({ok:true,cards:81,connections:await page.locator('.worldEdges path').count(),screenshot:path.join(dir,'workspace.png'),tested:['dense placement','free drag','reload persistence','zoom','pan','activity pulse','privacy toggle','SSE auth','filter persistence','new card placement without moving existing cards']}));
+}finally{await browser.close();await app.close();store.close();}

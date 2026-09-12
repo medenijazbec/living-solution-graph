@@ -1,3 +1,4 @@
+import { workspaceTools } from './workspace-tools.mjs';
 const obj=(properties={},required=[])=>({type:'object',properties,required,additionalProperties:false});
 const s={type:'string'}, b={type:'boolean'}, i={type:'integer'}, n={type:'number'};
 
@@ -35,7 +36,7 @@ export function buildRegistry(service){
   add('solution.get_semantic_diff','Return a staged or committed semantic proposal diff.',obj({project_id:s,run_id:s},['project_id','run_id']),a=>service.getSemanticDiff(a));
   add('solution.resolve_semantic_feature_reference','Resolve a human reference such as F1, F1.2, or 1 to its semantic feature, descendants, and edge cases before staging an update.',obj({project_id:s,reference:s},['project_id','reference']),a=>service.resolveSemanticFeatureReference(a));
   add('solution.reindex_semantic_features','Assign missing stable F-number display IDs to active semantic features without changing their source evidence.',obj({project_id:s,actor:s},['project_id']),a=>service.reindexSemanticFeatures(a));
-  add('solution.update_semantic_feature','Edit a semantic feature while preserving its stable semantic key and F-number. Acceptance tests are synchronized atomically.',obj({project_id:s,node_id:s,expected_graph_version:i,expected_node_version:i,title:s,outcome:s,priority:{type:'string',enum:['P0','P1','P2','P3']},acceptance_criteria:{type:'array',items:s},non_goals:{type:'array',items:s},actor:s},['project_id','node_id','expected_graph_version','expected_node_version']),a=>service.updateSemanticFeature(a));
+  add('solution.update_semantic_feature','Edit a semantic feature while preserving its stable semantic key and F-number. Acceptance tests are synchronized atomically.',obj({project_id:s,node_id:s,expected_graph_version:i,expected_node_version:i,title:s,outcome:s,priority:s,acceptance_criteria:{type:'array',items:s},non_goals:{type:'array',items:s},actor:s},['project_id','node_id','expected_graph_version','expected_node_version']),a=>service.updateSemanticFeature(a));
   add('solution.set_node_implementation_plan','Attach or replace a Markdown implementation plan on a feature or edge case.',obj({project_id:s,node_id:s,file_name:s,markdown:s,expected_document_version:i,actor:s},['project_id','node_id','markdown']),a=>service.setNodeImplementationPlan(a));
   add('solution.get_node_implementation_plan','Read the Markdown implementation plan attached to a feature or edge case.',obj({project_id:s,node_id:s},['project_id','node_id']),a=>service.getNodeImplementationPlan(a));
 
@@ -45,7 +46,7 @@ export function buildRegistry(service){
   add('memory.correct','Supersede a memory atom with a corrected version rather than destructively overwriting history.',obj({user_id:s,memory_id:s,value:s,kind:s,subject:s,scope:s,project_id:s,confidence:n,salience:n,source:s},['user_id','memory_id','value']),a=>service.memoryCorrect(a));
   add('memory.forget','Mark a memory atom forgotten so it is excluded from future context.',obj({user_id:s,memory_id:s},['user_id','memory_id']),a=>service.memoryForget(a));
 
-  return defs;
+  return [...defs,...workspaceTools(service)];
 }
 
 export function publicTools(registry){return registry.map(({handler,...d})=>d).sort((a,b)=>a.name.localeCompare(b.name));}

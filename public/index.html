@@ -6,6 +6,7 @@
   <title>Living Solution Graph</title>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/graph-ui.css" />
+  <link rel="stylesheet" href="/workspace.css" />
 </head>
 <body>
   <header>
@@ -40,14 +41,20 @@
       <div class="toolbar">
         <strong id="projectTitle">No project selected</strong>
         <button id="refresh" type="button">Refresh</button>
-        <button id="resetLayout" type="button">Reset order</button>
+        <button id="resetLayout" type="button">Tidy layout</button>
         <div class="tabs" role="tablist" aria-label="Graph view">
           <button id="semanticTab" class="tab active" type="button" role="tab" aria-selected="true">Semantic backlog</button>
           <button id="sourceTab" class="tab" type="button" role="tab" aria-selected="false">Source trace</button>
         </div>
-        <span id="semanticSummary" class="semanticSummary"></span><span class="dragHint">Drag cards vertically to reorder your view</span>
+        <span id="semanticSummary" class="semanticSummary"></span>
         <label><input id="showOther" type="checkbox"/> Show non-feature nodes</label>
       </div>
+      <div class="workspaceControls">
+        <button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button><button id="fitGraph">Fit graph</button>
+        <select id="progressFilter" aria-label="Completion filter"><option value="">All progress</option><option value="not_started">Not started</option><option value="partially_implemented">Partially implemented</option><option value="awaiting_verification">Awaiting verification</option><option value="fully_complete">Fully complete</option></select>
+        <select id="importanceFilter" aria-label="Importance filter"><option value="">All importance levels</option></select>
+        <label><input id="activityToggle" type="checkbox"> Enable live activity</label><span id="activityStatus">Live activity off</span>
+      </div><div id="progressSummary" class="progressSummary"></div>
       <div id="graph" class="graph"><div class="empty">Import a plan to generate the connected solution graph.</div></div>
     </section>
     <aside class="details">

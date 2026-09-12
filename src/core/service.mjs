@@ -5,6 +5,8 @@ import { createHash } from 'node:crypto';
 import { analyzeMarkdownPlan, commitAnalysis, detectArchetypes, getStarterCatalog, getStarterPack } from './bootstrap.mjs';
 import { newId, normalizeTitle, nowIso } from './db.mjs';
 import { SemanticLayer } from './semantic.mjs';
+import { Workspace } from './workspace.mjs';
+import { Activity } from './activity.mjs';
 
 function sha256(s){return createHash('sha256').update(s).digest('hex');}
 function approxTokens(s){return Math.ceil(String(s).length/4);}
@@ -19,6 +21,9 @@ export class LsgService {
     this.store=store;
     this.workspaceRoot=path.resolve(workspaceRoot);
     this.semantic=new SemanticLayer(store);
+    this.workspace=new Workspace(this);
+    this.activity=new Activity(this);
+    store.activity=this.activity;
   }
 
   createProject(input={}) { return this.store.createProject({id:input.project_id||input.id,title:input.title||input.project_id||'Untitled project',description:input.description||'',metadata:input.metadata||{}}); }
@@ -135,8 +140,8 @@ export class LsgService {
     return {...node,created:true,graph_version:gv};
   }
 
-  setNodeImplementationPlan(input){const project=this.store.requireProject(input.project_id);const node=this.store.getNode(input.node_id);if(!node||node.project_id!==project.id)throw toolError('Node not found','NODE_NOT_FOUND');if(!['feature','edge_case'].includes(node.type))throw toolError('Implementation plans can only be attached to features and edge cases','INVALID_NODE_TYPE');const markdown=String(input.markdown??'');if(Buffer.byteLength(markdown,'utf8')>2*1024*1024)throw toolError('Implementation plan exceeds 2 MiB','DOCUMENT_TOO_LARGE');const fileName=String(input.file_name||`${node.metadata?.display_id||node.id}-implementation-plan.md`).trim();if(!fileName.toLowerCase().endsWith('.md'))throw toolError('Implementation plan file_name must end in .md','INVALID_ARGUMENT');const document=this.store.upsertNodeDocument({project_id:project.id,node_id:node.id,kind:'implementation_plan',file_name:fileName,markdown,sha256:sha256(markdown),expected_version:input.expected_document_version,actor:input.actor||'user'});this.store.event({project_id:project.id,kind:'node.implementation_plan_saved',actor:input.actor||'user',entity_id:node.id,data:{document_id:document.id,file_name:fileName,sha256:document.sha256,version:document.version}});return document;}
-  getNodeImplementationPlan(input){const node=this.store.getNode(input.node_id);if(!node||node.project_id!==input.project_id)throw toolError('Node not found','NODE_NOT_FOUND');return this.store.getNodeDocument(node.id,'implementation_plan')||{project_id:input.project_id,node_id:node.id,kind:'implementation_plan',file_name:`${node.metadata?.display_id||node.id}-implementation-plan.md`,markdown:'',sha256:sha256(''),version:0,created_at:null,updated_at:null};}
+  setNodeImplementationPlan(input){const project=this.store.requireProject(input.project_id);const node=this.store.getNode(input.node_id);if(!node||node.project_id!==project.id)throw toolError('Node not found','NODE_NOT_FOUND');if(!['feature','edge_case'].includes(node.type))throw toolError('Implementation plans can only be attached to features and edge cases','INVALID_NODE_TYPE');const markdown=String(input.markdown??'');if(Buffer.byteLength(markdown,'utf8')>2*1024*1024)throw toolError('Implementation plan exceeds 2 MiB','DOCUMENT_TOO_LARGE');const fileName=String(input.file_name||`${node.metadata?.display_id||node.id}-implementation-plan.md`).trim();if(!fileName.toLowerCase().endsWith('.md'))throw toolError('Implementation plan file_name must end in .md','INVALID_ARGUMENT');const previousDocument=this.store.getNodeDocument(node.id);const document=this.store.upsertNodeDocument({project_id:project.id,node_id:node.id,kind:'implementation_plan',file_name:fileName,markdown,sha256:sha256(markdown),expected_version:input.expected_document_version,actor:input.actor||'user'});if(previousDocument?.markdown!==markdown&&node.implemented)this.store.updateNode(node.id,{verification_state:'stale',verified_at:null,last_invalidated_at:nowIso()});this.store.event({project_id:project.id,kind:'node.implementation_plan_saved',actor:input.actor||'user',entity_id:node.id,data:{document_id:document.id,file_name:fileName,sha256:document.sha256,version:document.version}});this.activity.emit(project.id,[node.id],'plan_update',input.actor||'mcp');return document;}
+  getNodeImplementationPlan(input){const node=this.store.getNode(input.node_id);if(!node||node.project_id!==input.project_id)throw toolError('Node not found','NODE_NOT_FOUND');this.activity.emit(input.project_id,[node.id],'read','mcp');return this.store.getNodeDocument(node.id,'implementation_plan')||{project_id:input.project_id,node_id:node.id,kind:'implementation_plan',file_name:`${node.metadata?.display_id||node.id}-implementation-plan.md`,markdown:'',sha256:sha256(''),version:0,created_at:null,updated_at:null};}
 
   auditImplementationStatus(input) {
     const p=this.store.requireProject(input.project_id); const all=this.store.listNodes(p.id,{types:input.types||['feature','edge_case','requirement','decision','test']});
@@ -158,7 +163,7 @@ export class LsgService {
     const q=normalizeTitle(input.query); const terms=q.split(' ').filter(Boolean); const rows=this.store.listNodes(input.project_id); const scored=rows.map(n=>{const t=normalizeTitle(`${n.title} ${n.description}`);let s=0;for(const x of terms)if(t.includes(x))s++;return {n,s};}).filter(x=>x.s>0).sort((a,b)=>b.s-a.s||a.n.title.localeCompare(b.n.title)).slice(0,input.limit||50); return scored.map(x=>({...x.n,score:x.s}));
   }
   findGaps(input){const a=this.auditImplementationStatus({project_id:input.project_id});return {project_id:input.project_id,graph_version:a.graph_version,gaps:[...a.not_implemented,...a.stale,...a.unverified_implemented].filter((x,i,arr)=>arr.findIndex(y=>y.id===x.id)===i)};}
-  getFrontier(input){const semantic=this.semantic.frontier(input.project_id,input.limit||25);if(semantic)return semantic;const gaps=this.findGaps(input).gaps;const priority=gaps.sort((a,b)=>((a.type==='edge_case'?1:0)-(b.type==='edge_case'?1:0))||a.title.localeCompare(b.title));return {project_id:input.project_id,mode:'lexical_fallback',frontier:priority.slice(0,input.limit||25)};}
+  getFrontier(input){const progress=this.workspace.remaining(input);const features=new Map(this.semantic.listFeatures(input.project_id).features.map(n=>[n.id,n]));return {project_id:input.project_id,mode:progress.mode,frontier:progress.items.filter(n=>n.dependency_ready&&!n.blocked).slice(0,input.limit||25).map(p=>({...features.get(p.id)||this.store.getNode(p.id),progress:p}))};}
 
   listStarterPacks(){return getStarterCatalog();}
   detectProjectArchetypes(input){return {archetypes:detectArchetypes(input.markdown||'',input.min_archetype_confidence??0.55)};}
@@ -174,7 +179,7 @@ export class LsgService {
   prepareSemanticFeatureSet(input){return this.semantic.prepare(input);}
   stageSemanticFeatureSet(input){const staged=this.semantic.stage(input);if(input.auto_commit===false)return {...staged,auto_committed:false};const committed=this.semantic.commit({project_id:input.project_id,run_id:staged.run_id,expected_graph_version:this.store.requireProject(input.project_id).graph_version,actor:input.actor||'codex'});const listed=this.semantic.listFeatures(input.project_id);return {...committed,auto_committed:true,counts:listed.counts,features:listed.features};}
   commitSemanticFeatureSet(input){return this.semantic.commit(input);}
-  getSemanticFeatureList(input){return this.semantic.listFeatures(input.project_id);}
+  getSemanticFeatureList(input){const list=this.semantic.listFeatures(input.project_id),progress=this.workspace.progress(input),byId=new Map(progress.items.map(p=>[p.id,p]));return {...list,progress_counts:progress.counts,features:list.features.map(n=>({...n,progress:byId.get(n.id),direct_edge_case_count:byId.get(n.id)?.direct_edge_cases??0,recursive_edge_case_count:byId.get(n.id)?.recursive_edge_cases??0,count_label:`${n.metadata.display_id} → ${byId.get(n.id)?.recursive_edge_cases??0} EC`,importance_review_required:!n.metadata.importance_rationale}))};}
   getSemanticEdgeCases(input){return this.semantic.listEdgeCases(input.project_id,input);}
   getSemanticDiff(input){return this.semantic.getDiff(input.project_id,input.run_id);}
   resolveSemanticFeatureReference(input){return this.semantic.resolveReference(input.project_id,input.reference);}
@@ -197,6 +202,6 @@ export class LsgService {
   getContext(input){
     const p=this.store.requireProject(input.project_id);const mem=input.user_id?this.memoryContext({user_id:input.user_id,project_id:p.id,budget_tokens:input.memory_budget_tokens||800}):{summary:'',memory_ids:[]};const frontier=this.getFrontier({project_id:p.id,limit:input.frontier_limit||20});const graph=this.getGraphView({project_id:p.id});const semantic=this.getSemanticFeatureList({project_id:p.id});
     const context={project:{id:p.id,title:p.title,description:p.description,graph_version:p.graph_version},user_memory:mem.summary,frontier_mode:frontier.mode||'lexical_fallback',frontier:frontier.frontier,semantic_features:semantic.features.slice(0,input.max_nodes||150),nodes:semantic.features.length?graph.nodes.filter(n=>n.metadata?.layer==='semantic').slice(0,input.max_nodes||150):graph.nodes.slice(0,input.max_nodes||150),edges:graph.edges.slice(0,input.max_edges||250)};
-    return {...context,context_hash:sha256(JSON.stringify(context))};
+    context.project_memory=this.workspace.memory({project_id:p.id,budget_tokens:input.memory_budget_tokens||800},'context');return {...context,context_hash:sha256(JSON.stringify(context))};
   }
 }

@@ -8,7 +8,7 @@ import { serveStdio } from './mcp/stdio.mjs';
 import { createHttpServer } from './http/server.mjs';
 
 function usage() {
-  console.error(`Living Solution Graph MCP v6.0.0\n\nUsage:\n  lsg-mcp stdio\n  lsg-mcp http\n  lsg-mcp doctor\n\nEnvironment: see .env.example`);
+  console.error(`Living Solution Graph MCP v6.1.0\n\nUsage:\n  lsg-mcp stdio\n  lsg-mcp http\n  lsg-mcp doctor\n\nEnvironment: see .env.example`);
 }
 
 function buildRuntime(config) {
@@ -27,7 +27,7 @@ async function main() {
 
   if (command === 'doctor') {
     const packCount = runtime.service.listStarterPacks().packs.length;
-    console.log(JSON.stringify({ ok: true, version: '6.0.0', node: process.version, db_path: config.dbPath, starter_packs: packCount }, null, 2));
+    console.log(JSON.stringify({ ok: true, version: '6.1.0', node: process.version, db_path: config.dbPath, starter_packs: packCount }, null, 2));
     closeStore();
     return;
   }
@@ -47,7 +47,7 @@ async function main() {
     const address = await app.listen();
     const host = typeof address === 'object' && address ? address.address : config.host;
     const port = typeof address === 'object' && address ? address.port : config.port;
-    console.log(`Living Solution Graph v6.0.0 listening on http://${host}:${port}`);
+    console.log(`Living Solution Graph v6.1.0 listening on http://${host}:${port}`);
     console.log(`MCP: http://${host}:${port}/mcp`);
     const shutdown = async (code=0) => { try { await app.close(); } finally { closeStore(); process.exit(code); } };
     process.on('SIGTERM', () => shutdown(0));

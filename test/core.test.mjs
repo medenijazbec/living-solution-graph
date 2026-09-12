@@ -99,8 +99,8 @@ test('Codex semantic feature sets stage, commit, drive the frontier, and become 
     const prepared=r.service.prepareSemanticFeatureSet({project_id:p.id,max_features:5});
     assert.equal(prepared.status,'prepared');assert.ok(prepared.brief.source_node_catalog.length>0);
     const proposal={features:[
-      {key:'cockpit.foundation',title:'Physical cockpit foundation',priority:'P0',outcome:'Players inhabit and operate a real cockpit.',source_node_ids:[sourceNodes[0].id],acceptance_criteria:['A player can enter and exit the cockpit.'],non_goals:['Heavy-frame crew split'],depends_on:[],edge_cases:[{key:'cockpit.disconnect',title:'Pilot disconnects while seated',trigger:'The owning client disconnects.',expected_behavior:'Server safely releases control.',severity:'high',validation_scenario:'Disconnect a seated client during a session.'}]},
-      {key:'cockpit.coop',parent_key:'cockpit.foundation',title:'Cockpit co-op control routing',priority:'P1',outcome:'Crew members share bounded control channels.',source_node_ids:[sourceNodes[1].id],acceptance_criteria:['Pilot and gunner can control separate channels.'],non_goals:[],depends_on:['cockpit.foundation'],edge_cases:[]}
+      {key:'cockpit.foundation',title:'Physical cockpit foundation',priority:'P0',importance_rationale:'Required for the tested product outcome.',outcome:'Players inhabit and operate a real cockpit.',source_node_ids:[sourceNodes[0].id],acceptance_criteria:['A player can enter and exit the cockpit.'],non_goals:['Heavy-frame crew split'],depends_on:[],edge_cases:[{key:'cockpit.disconnect',title:'Pilot disconnects while seated',trigger:'The owning client disconnects.',expected_behavior:'Server safely releases control.',severity:'high',validation_scenario:'Disconnect a seated client during a session.'}]},
+      {key:'cockpit.coop',parent_key:'cockpit.foundation',title:'Cockpit co-op control routing',priority:'P1',importance_rationale:'Required for the tested product outcome.',outcome:'Crew members share bounded control channels.',source_node_ids:[sourceNodes[1].id],acceptance_criteria:['Pilot and gunner can control separate channels.'],non_goals:[],depends_on:['cockpit.foundation'],edge_cases:[]}
     ]};
     const staged=r.service.stageSemanticFeatureSet({project_id:p.id,run_id:prepared.run_id,proposal,auto_commit:false});assert.equal(staged.status,'staged');assert.equal(staged.auto_committed,false);assert.equal(staged.diff.created.length,2);assert.deepEqual(staged.diff.superseded,[]);
     p=r.store.getProject(p.id);const committed=r.service.commitSemanticFeatureSet({project_id:p.id,run_id:prepared.run_id,expected_graph_version:p.graph_version});assert.equal(committed.status,'committed');
@@ -116,7 +116,7 @@ test('Codex semantic feature sets stage, commit, drive the frontier, and become 
 test('semantic feature proposals reject dependency cycles and unsupported source references',()=>{
   const r=runtime();try{
     const p=r.service.createProject({project_id:'semantic-invalid',title:'Semantic invalid'});const preview=r.service.previewMarkdownPlan({project_id:p.id,markdown:'# Plan\n- Feature A',expected_graph_version:p.graph_version,starter_pack_mode:'disabled'});r.service.commitPlanImport({project_id:p.id,import_session_id:preview.id,expected_graph_version:preview.expected_graph_version});const run=r.service.prepareSemanticFeatureSet({project_id:p.id});
-    const common={title:'Feature',priority:'P1',outcome:'Outcome',source_node_ids:['missing'],acceptance_criteria:['Pass'],non_goals:[],edge_cases:[]};
+    const common={title:'Feature',priority:'P1',importance_rationale:'Required for the tested product outcome.',outcome:'Outcome',source_node_ids:['missing'],acceptance_criteria:['Pass'],non_goals:[],edge_cases:[]};
     assert.throws(()=>r.service.stageSemanticFeatureSet({project_id:p.id,run_id:run.run_id,proposal:{features:[{...common,key:'feature.a',depends_on:['feature.b']},{...common,key:'feature.b',depends_on:['feature.a']} ]}}),/invalid source node|cycle/);
   } finally {r.close();}
 });
@@ -143,8 +143,8 @@ test('semantic staging auto-commits by default and returns recursive feature and
     const run=r.service.prepareSemanticFeatureSet({project_id:p.id,max_features:5});
     const ec=(key,title)=>({key,title,trigger:'Trigger',expected_behavior:'Recover safely',severity:'high',validation_scenario:'Exercise the trigger'});
     const result=r.service.stageSemanticFeatureSet({project_id:p.id,run_id:run.run_id,proposal:{features:[
-      {key:'feature.root',title:'Root feature',priority:'P0',outcome:'Root outcome',source_node_ids:[sources[0].id],acceptance_criteria:['Root passes'],non_goals:[],depends_on:[],edge_cases:[ec('feature.root.case','Root case')]},
-      {key:'feature.child',parent_key:'feature.root',title:'Child feature',priority:'P1',outcome:'Child outcome',source_node_ids:[sources[1].id],acceptance_criteria:['Child passes'],non_goals:[],depends_on:[],edge_cases:[ec('feature.child.case.one','Child case one'),ec('feature.child.case.two','Child case two')]}
+      {key:'feature.root',title:'Root feature',priority:'P0',importance_rationale:'Required for the tested product outcome.',outcome:'Root outcome',source_node_ids:[sources[0].id],acceptance_criteria:['Root passes'],non_goals:[],depends_on:[],edge_cases:[ec('feature.root.case','Root case')]},
+      {key:'feature.child',parent_key:'feature.root',title:'Child feature',priority:'P1',importance_rationale:'Required for the tested product outcome.',outcome:'Child outcome',source_node_ids:[sources[1].id],acceptance_criteria:['Child passes'],non_goals:[],depends_on:[],edge_cases:[ec('feature.child.case.one','Child case one'),ec('feature.child.case.two','Child case two')]}
     ]}});
     assert.equal(result.status,'committed');assert.equal(result.auto_committed,true);
     assert.deepEqual(result.counts,{features_total:2,root_features:1,subfeatures:1,edge_cases_total:3});
@@ -164,9 +164,9 @@ test('semantic feature fields are editable while identity and numbering remain s
     const baseline=r.service.previewMarkdownPlan({project_id:p.id,markdown:'# Product\n- Build feature A',expected_graph_version:p.graph_version,starter_pack_mode:'disabled',allow_model_edge_case_expansion:false});
     r.service.commitPlanImport({project_id:p.id,import_session_id:baseline.id,expected_graph_version:baseline.expected_graph_version});
     const source=r.store.listNodes(p.id).find(n=>n.metadata.layer==='source');const run=r.service.prepareSemanticFeatureSet({project_id:p.id});
-    r.service.stageSemanticFeatureSet({project_id:p.id,run_id:run.run_id,proposal:{features:[{key:'feature.editable',title:'Before',priority:'P2',outcome:'Before outcome',source_node_ids:[source.id],acceptance_criteria:['Old criterion'],non_goals:[],depends_on:[],edge_cases:[]}]}});
+    r.service.stageSemanticFeatureSet({project_id:p.id,run_id:run.run_id,proposal:{features:[{key:'feature.editable',title:'Before',priority:'P2',importance_rationale:'Required for the tested product outcome.',outcome:'Before outcome',source_node_ids:[source.id],acceptance_criteria:['Old criterion'],non_goals:[],depends_on:[],edge_cases:[]}]}});
     let feature=r.service.getSemanticFeatureList({project_id:p.id}).features[0];p=r.store.getProject(p.id);
-    const updated=r.service.updateSemanticFeature({project_id:p.id,node_id:feature.id,expected_graph_version:p.graph_version,expected_node_version:feature.version,title:'After',outcome:'After outcome',priority:'P0',acceptance_criteria:['Criterion one','Criterion two'],non_goals:['Out of scope']});
+    const updated=r.service.updateSemanticFeature({project_id:p.id,node_id:feature.id,expected_graph_version:p.graph_version,expected_node_version:feature.version,title:'After',outcome:'After outcome',priority:'P0',importance_rationale:'Required for the tested product outcome.',acceptance_criteria:['Criterion one','Criterion two'],non_goals:['Out of scope']});
     assert.equal(updated.title,'After');assert.equal(updated.description,'After outcome');assert.equal(updated.metadata.display_id,'F1');assert.equal(updated.acceptance_tests.length,2);assert.deepEqual(updated.metadata.non_goals,['Out of scope']);
   }finally{r.close();}
 });

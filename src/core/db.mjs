@@ -21,12 +21,16 @@ export class LsgStore {
   }
 
   migrate() {
+    const metaExists=this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get();
+    if(metaExists&&Number(this.db.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value)>9)throw new Error('Database requires a newer LSG version');
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS meta (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
-      INSERT INTO meta(key,value) VALUES('schema_version','8') ON CONFLICT(key) DO UPDATE SET value=excluded.value;
+      INSERT INTO meta(key,value) VALUES('schema_version','9') ON CONFLICT(key) DO UPDATE SET value=excluded.value;
 
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
@@ -166,6 +170,45 @@ export class LsgStore {
       CREATE INDEX IF NOT EXISTS idx_mem_user ON memories(user_id,state,salience DESC,updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_mem_project ON memories(project_id,state);
 
+      CREATE TABLE IF NOT EXISTS workspace_records (
+        kind TEXT NOT NULL, id TEXT NOT NULL, project_id TEXT NOT NULL,
+        data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(kind,id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_workspace_project ON workspace_records(project_id,kind);
+      CREATE TABLE IF NOT EXISTS record_revisions (
+        sequence INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL,
+        record_id TEXT NOT NULL, project_id TEXT NOT NULL, snapshot TEXT NOT NULL, created_at TEXT NOT NULL
+      );
+      CREATE TRIGGER IF NOT EXISTS record_insert_history AFTER INSERT ON workspace_records BEGIN
+        INSERT INTO record_revisions(kind,record_id,project_id,snapshot,created_at) VALUES(new.kind,new.id,new.project_id,new.data,new.updated_at);
+      END;
+      CREATE TRIGGER IF NOT EXISTS record_update_history AFTER UPDATE ON workspace_records BEGIN
+        INSERT INTO record_revisions(kind,record_id,project_id,snapshot,created_at) VALUES(new.kind,new.id,new.project_id,new.data,new.updated_at);
+      END;
+      CREATE TABLE IF NOT EXISTS node_revisions (
+        sequence INTEGER PRIMARY KEY AUTOINCREMENT,node_id TEXT NOT NULL, project_id TEXT NOT NULL,
+        version INTEGER NOT NULL, snapshot TEXT NOT NULL, created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_revisions_node ON node_revisions(node_id,sequence);
+      CREATE TRIGGER IF NOT EXISTS node_insert_history AFTER INSERT ON nodes BEGIN
+        INSERT INTO node_revisions(node_id,project_id,version,snapshot,created_at) VALUES(new.id,new.project_id,new.version,json_object('title',new.title,'description',new.description,'metadata',json(new.metadata_json),'implemented',new.implemented,'verification_state',new.verification_state,'status',new.status,'commit_sha',new.commit_sha),new.updated_at);
+      END;
+      CREATE TRIGGER IF NOT EXISTS node_update_history AFTER UPDATE ON nodes BEGIN
+        INSERT INTO node_revisions(node_id,project_id,version,snapshot,created_at) VALUES(new.id,new.project_id,new.version,json_object('title',new.title,'description',new.description,'metadata',json(new.metadata_json),'implemented',new.implemented,'verification_state',new.verification_state,'status',new.status,'commit_sha',new.commit_sha),new.updated_at);
+      END;
+      INSERT INTO node_revisions(node_id,project_id,version,snapshot,created_at)
+        SELECT id,project_id,version,json_object('title',title,'description',description,'metadata',json(metadata_json),'implemented',implemented,'verification_state',verification_state,'status',status,'commit_sha',commit_sha),updated_at FROM nodes WHERE NOT EXISTS (SELECT 1 FROM node_revisions WHERE node_id=nodes.id);
+      CREATE TRIGGER IF NOT EXISTS plan_insert_history AFTER INSERT ON node_documents BEGIN
+        INSERT INTO record_revisions(kind,record_id,project_id,snapshot,created_at) VALUES('plan',new.id,new.project_id,json_object('node_id',new.node_id,'markdown',new.markdown,'file_name',new.file_name,'version',new.version),new.updated_at);
+      END;
+      INSERT INTO record_revisions(kind,record_id,project_id,snapshot,created_at)
+        SELECT 'plan',id,project_id,json_object('node_id',node_id,'markdown',markdown,'file_name',file_name,'version',version),updated_at FROM node_documents WHERE NOT EXISTS (SELECT 1 FROM record_revisions WHERE kind='plan' AND record_id=node_documents.id);
+      CREATE TRIGGER IF NOT EXISTS node_delete_history BEFORE DELETE ON nodes BEGIN
+        INSERT INTO node_revisions(node_id,project_id,version,snapshot,created_at) VALUES(old.id,old.project_id,old.version+1,json_object('title',old.title,'description',old.description,'metadata',json(old.metadata_json),'status','deleted'),strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+      END;
+      CREATE TRIGGER IF NOT EXISTS plan_update_history AFTER UPDATE ON node_documents BEGIN
+        INSERT INTO record_revisions(kind,record_id,project_id,snapshot,created_at) VALUES('plan',new.id,new.project_id,json_object('node_id',new.node_id,'markdown',new.markdown,'file_name',new.file_name,'version',new.version),new.updated_at);
+      END;
       CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY,
         project_id TEXT,
@@ -179,9 +222,11 @@ export class LsgStore {
       CREATE INDEX IF NOT EXISTS idx_events_project ON events(project_id,created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id,created_at DESC);
     `);
+    this.db.exec('COMMIT');
+    } catch(error){this.db.exec('ROLLBACK');throw error;}
   }
 
-  close() { this.db.close(); }
+  close() { this.activity?.close(); this.db.close(); }
 
   tx(fn) {
     this.db.exec('BEGIN IMMEDIATE');
@@ -291,11 +336,20 @@ export class LsgStore {
     if (!old) { const e=new Error(`Node not found: ${id}`); e.code='NODE_NOT_FOUND'; throw e; }
     if (expectedVersion != null && old.version !== expectedVersion) { const e=new Error(`Node version conflict: expected ${expectedVersion}, current ${old.version}`); e.code='NODE_VERSION_CONFLICT'; e.current_node_version=old.version; throw e; }
     const merged = { ...old, ...patch, version: old.version + 1, updated_at: nowIso(), metadata: { ...old.metadata, ...(patch.metadata || {}) } };
+    const definitionChanged=old.title!==merged.title||old.description!==merged.description||['acceptance_criteria','non_goals','trigger','validation_scenario','source_node_ids'].some(k=>JSON.stringify(old.metadata[k])!==JSON.stringify(merged.metadata[k]));
+    if(definitionChanged){merged.verification_state=old.implemented?'stale':'unverified';merged.verified_at=null;merged.last_invalidated_at=nowIso();}
     this.db.prepare(`UPDATE nodes SET title=?,description=?,origin=?,status=?,implemented=?,implementation_state=?,verification_state=?,
       source_claimed_implemented=?,disposition=?,parent_id=?,commit_sha=?,version=?,updated_at=?,implemented_at=?,verified_at=?,last_invalidated_at=?,metadata_json=? WHERE id=?`).run(
       merged.title,merged.description,merged.origin,merged.status,merged.implemented?1:0,merged.implementation_state,merged.verification_state,
       merged.source_claimed_implemented?1:0,merged.disposition,merged.parent_id,merged.commit_sha,merged.version,merged.updated_at,merged.implemented_at,merged.verified_at,merged.last_invalidated_at,j(merged.metadata),id
     );
+    if (definitionChanged && old.metadata.layer === 'source') {
+      for (const node of this.listNodes(old.project_id)) {
+        if (node.metadata.layer === 'semantic' && node.metadata.source_node_ids?.includes(id)) {
+          this.updateNodeInTransaction(node.id, { verification_state: node.implemented ? 'stale' : 'unverified', verified_at: null, last_invalidated_at: nowIso() });
+        }
+      }
+    }
     return this.getNode(id);
   }
   updateNode(id, patch, expectedVersion = null) {

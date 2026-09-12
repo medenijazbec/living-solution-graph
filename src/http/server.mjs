@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { timingSafeEqual } from 'node:crypto';
-import { MODERN_PROTOCOL, validateModernHeaders } from '../mcp/protocol.mjs';
+import { MODERN_PROTOCOL, validateModernHeaders, } from '../mcp/protocol.mjs';
+
+import { workspaceTools } from '../mcp/workspace-tools.mjs';
+import { validateArgs } from '../mcp/registry.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const publicDir=path.resolve(here,'../../public');
@@ -30,7 +33,7 @@ export function createHttpServer({service,protocol,config,log=console.error}){
   async function route(req,res){
     counters.requests++;addSecurity(res);cors(req,res); if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}
     const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`); const pathname=url.pathname;
-    if(pathname==='/healthz')return json(res,200,{ok:true,version:'6.0.0',uptime_seconds:Math.floor((Date.now()-counters.started)/1000)});
+    if(pathname==='/healthz')return json(res,200,{ok:true,version:'6.1.0',uptime_seconds:Math.floor((Date.now()-counters.started)/1000)});
     if(pathname==='/readyz')return json(res,200,{ok:true,database:true});
     if(pathname==='/metrics')return text(res,200,`# TYPE lsg_http_requests_total counter\nlsg_http_requests_total ${counters.requests}\n# TYPE lsg_mcp_requests_total counter\nlsg_mcp_requests_total ${counters.mcp}\n# TYPE lsg_http_errors_total counter\nlsg_http_errors_total ${counters.errors}\n`,'text/plain; version=0.0.4');
 
@@ -52,6 +55,21 @@ export function createHttpServer({service,protocol,config,log=console.error}){
     if(pathname==='/api/projects'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.createProject(b));}
     if(pathname==='/api/workspaces/resolve'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.resolveWorkspaceProject(b));}
     let m;
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/activity\/stream$/))&&req.method==='GET'){
+      const projectId=decodeURIComponent(m[1]);service.store.requireProject(projectId);
+      res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-store','connection':'keep-alive'});res.write(': connected\n\n');
+      const send=event=>{if(!res.destroyed)res.write('data: '+JSON.stringify(event)+'\n\n');};
+      service.activity.bus.on(projectId,send);const heartbeat=setInterval(()=>{if(!res.destroyed)res.write(': heartbeat\n\n');},15000);
+      req.on('close',()=>{clearInterval(heartbeat);service.activity.bus.off(projectId,send);});return;
+    }
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/workspace\/([\w]+)$/))&&['GET','POST'].includes(req.method)){
+      const tool=workspaceTools(service).find(t=>t.name==='solution.'+m[2]);if(!tool)return json(res,404,{error:'Unknown workspace tool'});
+      const writes=new Set(['set_importance_scale','set_feature_importance','claim_next_work','update_work','review_work','sync_git_history','set_node_file_links','set_activity_enabled']);
+      if(writes.has(m[2])&&req.method!=='POST')return json(res,405,{error:'POST required'});
+      const args=req.method==='POST'?await readBody(req,config.maxBodyBytes):Object.fromEntries(url.searchParams);
+      args.project_id=decodeURIComponent(m[1]);for(const [key,rule] of Object.entries(tool.inputSchema.properties)){if(rule.type==='integer'&&args[key]!=null)args[key]=Number(args[key]);if(rule.type==='boolean'&&typeof args[key]==='string')args[key]=args[key]==='true';}
+      const invalid=validateArgs(tool.inputSchema,args);if(invalid)return json(res,400,{error:invalid});return json(res,200,await tool.handler(args));
+    }
     if((m=pathname.match(/^\/api\/projects\/([^/]+)$/))&&req.method==='GET'){const p=service.store.getProject(decodeURIComponent(m[1]));return p?json(res,200,p):json(res,404,{error:'Project not found'});}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/graph$/))&&req.method==='GET')return json(res,200,service.getGraphView({project_id:decodeURIComponent(m[1])}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/audit$/))&&req.method==='GET')return json(res,200,service.auditImplementationStatus({project_id:decodeURIComponent(m[1])}));
@@ -84,14 +102,14 @@ export function createHttpServer({service,protocol,config,log=console.error}){
     if((pathname==='/v1/responses'||pathname==='/v1/chat/completions')&&req.method==='POST')return proxyOpenAI(req,res,pathname,service,config);
 
     if(req.method==='GET'){
-      const rel=pathname==='/'?'index.html':pathname.replace(/^\/+/,'');const f=path.resolve(publicDir,rel);if((f===publicDir||f.startsWith(publicDir+path.sep))&&fs.existsSync(f)&&fs.statSync(f).isFile()){const body=fs.readFileSync(f);res.writeHead(200,{'content-type':mime[path.extname(f)]||'application/octet-stream','content-length':body.length,'cache-control':path.basename(f)==='index.html'?'no-cache':'public, max-age=3600'});res.end(body);return;}
+      const rel=pathname==='/'?'index.html':pathname.replace(/^\/+/,'');const f=path.resolve(publicDir,rel);if((f===publicDir||f.startsWith(publicDir+path.sep))&&fs.existsSync(f)&&fs.statSync(f).isFile()){const body=fs.readFileSync(f);res.writeHead(200,{'content-type':mime[path.extname(f)]||'application/octet-stream','content-length':body.length,'cache-control':'no-cache'});res.end(body);return;}
       if(!path.extname(pathname)){const f2=path.join(publicDir,'index.html');if(fs.existsSync(f2)){const body=fs.readFileSync(f2);res.writeHead(200,{'content-type':'text/html; charset=utf-8','content-length':body.length});res.end(body);return;}}
     }
     return json(res,404,{error:'Not found'});
   }
 
   const server=http.createServer((req,res)=>{route(req,res).catch(e=>{counters.errors++;log(`[http] ${e.stack||e}`);if(!res.headersSent)json(res,e.status||500,{error:e.message||'Internal server error',code:e.code||'INTERNAL_ERROR'});else res.destroy();});});
-  return {server,counters,listen(){return new Promise((resolve,reject)=>{server.once('error',reject);server.listen(config.port,config.host,()=>{server.off('error',reject);resolve(server.address());});});},close(){return new Promise(resolve=>server.close(()=>resolve()));}};
+  return {server,counters,listen(){return new Promise((resolve,reject)=>{server.once('error',reject);server.listen(config.port,config.host,()=>{server.off('error',reject);resolve(server.address());});});},close(){service.activity.close();server.closeAllConnections();return new Promise(resolve=>server.close(()=>resolve()));}};
 }
 
 async function proxyOpenAI(req,res,pathname,service,config){

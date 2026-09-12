@@ -1,5 +1,7 @@
 # How to use Living Solution Graph
 
+New in 6.1: [progress, importance, work claims, memory, history and live canvas](docs/WORKSPACE_6_1.md).
+
 Living Solution Graph (LSG) is a local MCP server that converts a Markdown plan into a persistent, traceable implementation graph. It keeps the original plan as a source layer and, when requested, creates a separate semantic backlog: bounded implementation features, dependencies, acceptance criteria, and edge cases.
 
 ## What LSG stores

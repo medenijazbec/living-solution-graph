@@ -1,10 +1,11 @@
 import path from 'node:path';
+import fs from 'node:fs';
 function bool(v,d=false){if(v==null)return d;return ['1','true','yes','on'].includes(String(v).toLowerCase());}
 function list(v,d=[]){return v?String(v).split(',').map(x=>x.trim()).filter(Boolean):d;}
 export function loadConfig(env=process.env){
   const host=env.LSG_HOST||'127.0.0.1'; const port=Number(env.LSG_PORT||7347);
   return {
-    host,port,dbPath:path.resolve(env.LSG_DB_PATH||'./data/lsg.sqlite'),workspaceRoot:path.resolve(env.LSG_WORKSPACE_ROOT||'.'),
+    host,port,dbPath:path.resolve(env.LSG_DB_PATH||(fs.existsSync('./data/lsg.sqlite')?'./data/lsg.sqlite':null)||(process.platform==='win32'?path.join(env.LOCALAPPDATA||path.join(process.env.USERPROFILE||'.','AppData','Local'),'LivingSolutionGraph','lsg.sqlite'):'./data/lsg.sqlite')),workspaceRoot:path.resolve(env.LSG_WORKSPACE_ROOT||'.'),
     apiToken:env.LSG_API_TOKEN||'',allowInsecure:bool(env.LSG_ALLOW_INSECURE,false),
     allowedOrigins:list(env.LSG_ALLOWED_ORIGINS,[`http://127.0.0.1:${port}`,`http://localhost:${port}`]),
     allowedHosts:list(env.LSG_ALLOWED_HOSTS,[`127.0.0.1:${port}`,`localhost:${port}`,`[::1]:${port}`]),
