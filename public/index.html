@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Living Solution Graph</title>
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/graph-ui.css" />
 </head>
 <body>
   <header>
@@ -39,12 +40,12 @@
       <div class="toolbar">
         <strong id="projectTitle">No project selected</strong>
         <button id="refresh" type="button">Refresh</button>
-        <button id="resetLayout" type="button">Reset layout</button>
+        <button id="resetLayout" type="button">Reset order</button>
         <div class="tabs" role="tablist" aria-label="Graph view">
           <button id="semanticTab" class="tab active" type="button" role="tab" aria-selected="true">Semantic backlog</button>
           <button id="sourceTab" class="tab" type="button" role="tab" aria-selected="false">Source trace</button>
         </div>
-        <span id="semanticSummary" class="semanticSummary"></span>
+        <span id="semanticSummary" class="semanticSummary"></span><span class="dragHint">Drag cards vertically to reorder your view</span>
         <label><input id="showOther" type="checkbox"/> Show non-feature nodes</label>
       </div>
       <div id="graph" class="graph"><div class="empty">Import a plan to generate the connected solution graph.</div></div>
