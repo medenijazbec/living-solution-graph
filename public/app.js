@@ -6,7 +6,7 @@ const state={projectId:'',project:null,graph:null,semantic:null,semanticCases:nu
 let canvas=null,activityAbort=null,recentActivityTimer=null;
 function showLiveActivity(event){if(event.kind==='activity_disabled')return;const indicator=$('activityStatus');indicator.textContent=`LIVING · ${String(event.kind).replaceAll('_',' ')} · ${event.node_ids?.length||0} node${event.node_ids?.length===1?'':'s'}`;indicator.classList.add('liveRecent');clearTimeout(recentActivityTimer);recentActivityTimer=setTimeout(()=>{indicator.classList.remove('liveRecent');if($('activityToggle').checked)indicator.textContent='LIVING · watching mapped files';},2400);}
 const layoutKey=()=>`lsg-layout-mode:${state.projectId}:${state.view}`;
-const activeLayout=()=>localStorage.getItem(layoutKey())||(state.view==='semantic'?'radial':'columns');
+const activeLayout=()=>localStorage.getItem(layoutKey())||'radial';
 const workspaceApi=(name,args)=>api(`/api/projects/${encodeURIComponent(state.projectId)}/workspace/${name}`,args?{method:'POST',body:JSON.stringify(args)}:{});
 
 function authHeaders(){const token=sessionStorage.getItem('lsg_api_token')||'';return token?{authorization:`Bearer ${token}`}:{}}
@@ -31,7 +31,7 @@ function nodeSort(a,b){return String(a.metadata?.display_id||'').localeCompare(S
 function nodeMarkup(node){const selected=node.id===state.selected?.id?' selected':'',verification=node.verification_state==='verified'?'yes':node.verification_state==='stale'?'stale':'verify',feature=semanticFeature(node.id),number=node.metadata?.display_id?`<span class="badge number">${esc(node.metadata.display_id)}</span>`:'',count=feature?`<span class="badge count">${esc(feature.count_label)}</span>`:'';return `<article class="node ${esc(node.type)}${selected}" data-id="${esc(node.id)}" tabindex="0" aria-label="${esc(node.title)}. Drag to position this card."><div class="nodeGrip" aria-hidden="true">⠿</div><div class="type">${esc(node.type.replace('_',' '))}</div><div class="title">${esc(node.title)}</div><div class="badges">${number}${count}<span class="badge ${node.implemented?'yes':'no'}">${node.implemented?'implemented':'not implemented'}</span><span class="badge ${verification}">${esc(node.verification_state)}</span></div></article>`;}
 
 function renderGraph(){
-  if(!state.graph)return;renderAudit(state.audit);const {nodes,edges}=graphData(),mode=activeLayout(),key=`lsg-canvas-v4:${state.projectId}:${state.view}:${mode}`;$('layoutMode').value=mode;
+  if(!state.graph)return;renderAudit(state.audit);const {nodes,edges}=graphData(),mode=activeLayout(),key=`lsg-canvas-v4:${state.projectId}:${state.view}:${mode}`;for(const radio of document.querySelectorAll('input[name="layoutMode"]'))radio.checked=radio.value===mode;
   if(!canvas||canvas.key!==key){canvas?.destroy();canvas=new GraphCanvas($('graph'),{key,onSelect:showNode,mode,priorityOrder:state.scale?.levels?.map(level=>level.id)||['P0','P1','P2','P3']});}
   canvas.render(nodes,edges,nodeMarkup);state.nodeElements=canvas.elements;
 }
@@ -69,7 +69,7 @@ $('commitPlan').onclick=async()=>{if(!state.preview)return;try{await api(`/api/p
 $('apiToken').value=sessionStorage.getItem('lsg_api_token')||'';$('saveToken').onclick=()=>{const value=$('apiToken').value.trim();if(value)sessionStorage.setItem('lsg_api_token',value);else sessionStorage.removeItem('lsg_api_token');loadProjects().catch(error=>alert(error.message));};
 
 $('zoomIn').onclick=()=>canvas?.zoom(1.2);$('zoomOut').onclick=()=>canvas?.zoom(1/1.2);$('fitGraph').onclick=()=>canvas?.fit();
-$('layoutMode').onchange=event=>{if(!state.projectId)return;localStorage.setItem(layoutKey(),event.target.value);renderGraph();};
+$('layoutMode').onchange=event=>{if(!state.projectId||event.target.name!=='layoutMode')return;localStorage.setItem(layoutKey(),event.target.value);renderGraph();};
 $('progressFilter').onchange=renderGraph;$('importanceFilter').onchange=renderGraph;
 $('activityToggle').onchange=async event=>{const enabled=event.target.checked;await workspaceApi('set_activity_enabled',{enabled});if(enabled)connectActivity();else activityAbort?.abort();$('activityStatus').textContent=enabled?'LIVING · watching mapped files':'Live activity off';$('activityStatus').classList.toggle('liveRecent',enabled);};
 $('deleteProject').onclick=async()=>{if(!state.projectId)return alert('Select a project first.');const project=state.project||await api(`/api/projects/${encodeURIComponent(state.projectId)}`);const typed=prompt(`Permanently delete “${project.title}” and all its graph data? Type its exact title to confirm:`);if(typed!==project.title)return;try{await api(`/api/projects/${encodeURIComponent(project.id)}`,{method:'DELETE',body:JSON.stringify({confirm_title:typed})});state.projectId='';state.project=null;state.selected=null;canvas?.destroy();canvas=null;await loadProjects();await selectProject('');$('projectTitle').textContent='No project selected';$('semanticSummary').textContent='';$('audit').innerHTML='';$('nodeDetails').innerHTML='';history.replaceState(null,'',location.pathname);}catch(error){alert(error.message);}};
