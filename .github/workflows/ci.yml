@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [master, staging]
+  pull_request:
+    branches: [staging]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22.x, 24.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run smoke
+      - run: npm run verify
+      - run: node src/cli.mjs doctor
+        env:
+          LSG_DB_PATH: ${{ runner.temp }}/lsg-doctor.sqlite
+          LSG_WORKSPACE_ROOT: ${{ github.workspace }}
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run test:orbital

@@ -8,6 +8,7 @@ import {LsgService} from '../src/core/service.mjs';
 import {McpProtocol} from '../src/mcp/protocol.mjs';
 import {createHttpServer} from '../src/http/server.mjs';
 import {loadConfig} from '../src/core/config.mjs';
+import {browserLaunchOptions} from './browser-runtime.mjs';
 
 const {chromium}=await import(process.env.LSG_PLAYWRIGHT_MODULE?pathToFileURL(process.env.LSG_PLAYWRIGHT_MODULE).href:'playwright');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-orbital-'));
@@ -15,7 +16,7 @@ const store=new LsgStore(path.join(dir,'db.sqlite')),service=new LsgService(stor
 const config={...loadConfig({LSG_DB_PATH:store.dbPath}),port:0,rateLimitPerMinute:10000,allowedHosts:[],allowedOrigins:[]};
 const server=createHttpServer({service,protocol:new McpProtocol(service),config,log:()=>{}});
 const address=await server.listen(),base=`http://127.0.0.1:${address.port}`;
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true,...browserLaunchOptions()});
 const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[],external=[];
 page.on('pageerror',e=>errors.push(e.message));
 page.on('request',r=>{if(!r.url().startsWith(base)&&!r.url().startsWith('data:'))external.push(r.url());});

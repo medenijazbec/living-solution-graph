@@ -5,6 +5,22 @@
   "type": "module",
   "private": false,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/medenijazbec/living-solution-graph.git"
+  },
+  "homepage": "https://github.com/medenijazbec/living-solution-graph#readme",
+  "bugs": {
+    "url": "https://github.com/medenijazbec/living-solution-graph/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "project-memory",
+    "feature-tracking",
+    "edge-cases"
+  ],
   "engines": {
     "node": ">=22.5.0"
   },
@@ -28,12 +44,16 @@
     "public/",
     "bootstrap/",
     "docs/",
+    ".github/assets/lsg.png",
     "README.md",
     "HOW_TO_USE_LSG.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "LICENSE",
     "CHANGELOG.md",
     "VERSION.json",
     ".env.example",
-    "mcp.json.example",
     "mcp.json.example",
     "Dockerfile",
     ".mcp.json",
@@ -43,5 +63,8 @@
     ".": "./src/index.mjs",
     "./mcp": "./src/mcp/protocol.mjs",
     "./core": "./src/core/service.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

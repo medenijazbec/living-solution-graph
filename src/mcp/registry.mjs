@@ -22,6 +22,7 @@ export function buildRegistry(service){
   add('solution.audit_implementation_status','Traverse the entire graph and return implemented, not implemented, verified, unverified, stale, blocked, and plan-claimed status inventories.',obj({project_id:s,types:{type:'array',items:s}},['project_id']),a=>service.auditImplementationStatus(a));
   add('solution.add_edge_case','Let the model insert a newly discovered edge case into the graph under a feature. When the parent is semantic, the edge case keeps semantic numbering and count visibility. New edge cases start implemented=false and unverified.',obj({project_id:s,parent_feature_id:s,title:s,description:s,category:s,severity:s,disposition:s,reason:s,trigger:s,expected_behavior:s,validation_scenario:s,origin:s,actor:s,expected_graph_version:i},['project_id','parent_feature_id','title','expected_graph_version']),a=>service.addEdgeCase(a));
   add('solution.get_graph_view','Return connected graph nodes/edges for rendering. Nodes include live implementation, verification, timestamps, and inherited commit metadata.',obj({project_id:s,include_types:{type:'array',items:s}},['project_id']),a=>service.getGraphView(a));
+  add('solution.validate_project_integrity','Run a read-only graph consistency audit for identity collisions, orphan records, unsafe mappings, dependency cycles, incomplete edge-case definitions, and stale semantic runs.',obj({project_id:s,include_details:b,limit:{type:'integer',minimum:1,maximum:500}},['project_id']),a=>service.validateProjectIntegrity(a));
   add('solution.select_node_neighborhood','Select one feature or edge case by node ID, F/E-number, semantic key, or exact title and return it with every directly connected neighbor.',obj({project_id:s,node_id:s,reference:s,max_nodes:{type:'integer',minimum:2,maximum:250}},['project_id']),a=>service.selectNodeNeighborhood(a));
   add('solution.select_node_cascade','Select one feature or edge case and return its direct neighbors plus a chosen number of additional neighbor generations. cascade_depth=1 includes neighbors of neighbors.',obj({project_id:s,node_id:s,reference:s,cascade_depth:{type:'integer',minimum:0,maximum:5},max_nodes:{type:'integer',minimum:2,maximum:250}},['project_id','cascade_depth']),a=>service.selectNodeCascade(a));
   add('solution.search','Search graph nodes by normalized lexical relevance.',obj({project_id:s,query:s,limit:i},['project_id','query']),a=>service.search(a));
@@ -61,7 +62,10 @@ export function buildRegistry(service){
   add('memory.correct','Supersede a memory atom with a corrected version rather than destructively overwriting history.',obj({user_id:s,memory_id:s,value:s,kind:s,subject:s,scope:s,project_id:s,confidence:n,salience:n,source:s},['user_id','memory_id','value']),a=>service.memoryCorrect(a));
   add('memory.forget','Mark a memory atom forgotten so it is excluded from future context.',obj({user_id:s,memory_id:s},['user_id','memory_id']),a=>service.memoryForget(a));
 
-  return [...defs,...workspaceTools(service)];
+  const registry=[...defs,...workspaceTools(service)];
+  const category=name=>name.startsWith('memory.')?'memory':name.includes('semantic')||name==='solution.add_edge_case'?'semantic':name.includes('implementation_plan')||name.includes('plan_batch')||name.includes('missing_plans')?'plans':name.includes('activity')||name.includes('node_file')||name.includes('git_history')||name.includes('node_history')?'activity_and_history':name.includes('work')?'work':name.includes('importance')?'importance':name.includes('markdown_plan')||name.includes('plan_import')||name.includes('starter_pack')||name.includes('project_snapshot')||name==='solution.create_project'||name==='solution.delete_project'||name==='solution.resolve_workspace_project'?'projects_and_imports':'graph_and_progress';
+  registry.push({name:'solution.get_tool_catalog',description:'Return a compact, searchable and paginated catalog of LSG tools without loading every JSON schema into model context.',inputSchema:obj({query:s,category:s,cursor:{type:'integer',minimum:0},limit:{type:'integer',minimum:1,maximum:25}}),handler:a=>{const query=String(a.query||'').trim().toLowerCase(),wanted=String(a.category||'').trim().toLowerCase(),matches=registry.map(tool=>({name:tool.name,description:tool.description,category:category(tool.name),required:tool.inputSchema.required||[]})).filter(tool=>(!wanted||tool.category===wanted)&&(!query||`${tool.name} ${tool.description}`.toLowerCase().includes(query))).sort((x,y)=>x.name.localeCompare(y.name));const offset=Math.max(0,Number(a.cursor)||0),limit=Math.max(1,Math.min(25,Number(a.limit)||10)),items=matches.slice(offset,offset+limit),next=offset+items.length;return {total:matches.length,cursor:offset,limit,items,next_cursor:next<matches.length?next:null,categories:[...new Set(registry.map(tool=>category(tool.name)))].sort()};}});
+  return registry;
 }
 
 export function publicTools(registry){return registry.map(({handler,...d})=>d).sort((a,b)=>a.name.localeCompare(b.name));}
@@ -70,14 +74,32 @@ export function validateArgs(schema,args){
   args=args??{};
   if(schema.type==='object' && (typeof args!=='object'||Array.isArray(args))) return 'arguments must be an object';
   for(const key of schema.required||[]) if(args[key]===undefined||args[key]===null) return `missing required argument: ${key}`;
-  for(const [key,value] of Object.entries(args)){
-    const rule=schema.properties?.[key]; if(!rule) continue;
-    if(rule.type==='string'&&typeof value!=='string')return `${key} must be a string`;
-    if(rule.type==='boolean'&&typeof value!=='boolean')return `${key} must be a boolean`;
-    if(rule.type==='integer'&&!Number.isInteger(value))return `${key} must be an integer`;
-    if(rule.type==='number'&&typeof value!=='number')return `${key} must be a number`;
-    if(rule.type==='array'&&!Array.isArray(value))return `${key} must be an array`;
-    if(rule.enum&&!rule.enum.includes(value))return `${key} must be one of: ${rule.enum.join(', ')}`;
-  }
+  if(schema.additionalProperties===false)for(const key of Object.keys(args))if(!Object.hasOwn(schema.properties||{},key))return `unknown argument: ${key}`;
+  const visit=(rule,value,label)=>{
+    if(rule.enum&&!rule.enum.includes(value))return `${label} must be one of: ${rule.enum.join(', ')}`;
+    if(rule.type==='string'){
+      if(typeof value!=='string')return `${label} must be a string`;
+      if(rule.minLength!=null&&value.length<rule.minLength)return `${label} must contain at least ${rule.minLength} characters`;
+      if(rule.maxLength!=null&&value.length>rule.maxLength)return `${label} must contain at most ${rule.maxLength} characters`;
+      if(rule.pattern&&!new RegExp(rule.pattern).test(value))return `${label} has an invalid format`;
+    }else if(rule.type==='boolean'){if(typeof value!=='boolean')return `${label} must be a boolean`;
+    }else if(rule.type==='integer'){if(!Number.isInteger(value))return `${label} must be an integer`;
+    }else if(rule.type==='number'){if(typeof value!=='number'||!Number.isFinite(value))return `${label} must be a finite number`;
+    }else if(rule.type==='array'){
+      if(!Array.isArray(value))return `${label} must be an array`;
+      if(rule.minItems!=null&&value.length<rule.minItems)return `${label} must contain at least ${rule.minItems} items`;
+      if(rule.maxItems!=null&&value.length>rule.maxItems)return `${label} must contain at most ${rule.maxItems} items`;
+      if(rule.items)for(let index=0;index<value.length;index++){const error=visit(rule.items,value[index],`${label}[${index}]`);if(error)return error;}
+    }else if(rule.type==='object'){
+      if(value==null||typeof value!=='object'||Array.isArray(value))return `${label} must be an object`;
+      for(const required of rule.required||[])if(value[required]===undefined||value[required]===null)return `missing required argument: ${label}.${required}`;
+      if(rule.additionalProperties===false)for(const key of Object.keys(value))if(!Object.hasOwn(rule.properties||{},key))return `unknown argument: ${label}.${key}`;
+      for(const [key,nested] of Object.entries(value)){const child=rule.properties?.[key];if(child){const error=visit(child,nested,`${label}.${key}`);if(error)return error;}}
+    }
+    if((rule.type==='integer'||rule.type==='number')&&rule.minimum!=null&&value<rule.minimum)return `${label} must be at least ${rule.minimum}`;
+    if((rule.type==='integer'||rule.type==='number')&&rule.maximum!=null&&value>rule.maximum)return `${label} must be at most ${rule.maximum}`;
+    return null;
+  };
+  for(const [key,value] of Object.entries(args)){const rule=schema.properties?.[key];if(rule){const error=visit(rule,value,key);if(error)return error;}}
   return null;
 }

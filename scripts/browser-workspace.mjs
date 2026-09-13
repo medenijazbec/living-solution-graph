@@ -8,6 +8,7 @@ import {LsgService} from '../src/core/service.mjs';
 import {McpProtocol} from '../src/mcp/protocol.mjs';
 import {createHttpServer} from '../src/http/server.mjs';
 import {loadConfig} from '../src/core/config.mjs';
+import {browserLaunchOptions} from './browser-runtime.mjs';
 
 const modulePath=process.env.LSG_PLAYWRIGHT_MODULE;
 const {chromium}=await import(modulePath?pathToFileURL(modulePath).href:'playwright');
@@ -17,7 +18,7 @@ service.createProject({project_id:'eden-fixture',title:'Eden Above — dense bro
 const names=['Bunker opening','Frame assembly','Physical cockpit','Persistent expeditions','Gustav deployment','Return Cradle','Goliath Rig','Catch / Release'];const roots=[];
 for(let i=0;i<80;i++){const node=store.insertNode({project_id:'eden-fixture',type:i<24?'feature':'edge_case',title:`${names[i%names.length]} ${i+1}: ${'variable height requirement '.repeat(i%4)}`,parent_id:i<24?null:roots[i%24].id,metadata:{layer:'semantic',semantic_key:`fixture.${i}`,display_id:i<24?`F${i+1}`:`F${i%24+1}.E${i}`,...(i<24?{priority:`P${i%4}`}:{ }),acceptance_criteria:['Observable outcome'],non_goals:[]}});if(i<24)roots.push(node);else store.insertEdge({project_id:'eden-fixture',source_id:roots[i%24].id,target_id:node.id,type:'has_edge_case'});}
 fs.mkdirSync(path.join(dir,'src'));fs.writeFileSync(path.join(dir,'src','frame.txt'),'fixture source');service.activity.links({project_id:'eden-fixture',node_id:roots[0].id,paths:['src/frame.txt']});
-const app=createHttpServer({service,protocol,config,log:()=>{}});const addr=await app.listen(),base=`http://127.0.0.1:${addr.port}`;const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+const app=createHttpServer({service,protocol,config,log:()=>{}});const addr=await app.listen(),base=`http://127.0.0.1:${addr.port}`;const browser=await chromium.launch({headless:true,...browserLaunchOptions()});const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
   await page.addInitScript(()=>sessionStorage.setItem('lsg_api_token','browser-token'));
   await page.goto(base+'/?workspace='+encodeURIComponent(dir));await page.waitForSelector('.cards .node');await page.waitForFunction(()=>document.querySelectorAll('.cards .node').length===80);await page.waitForTimeout(300);

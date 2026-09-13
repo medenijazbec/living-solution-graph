@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible LSG defect
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for reporting a problem. Remove secrets, private plans, and database contents.
+  - type: input
+    id: version
+    attributes:
+      label: LSG version or commit
+      placeholder: v6.1.0 or commit SHA
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: Windows 11, Node.js 22.16.0, HTTP MCP
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest safe sequence that reproduces the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Relevant check output
+      description: Include concise, sanitized doctor/test output when available.

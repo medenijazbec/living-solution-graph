@@ -1,5 +1,16 @@
 # LSG 6.1.0 release verification
 
+## MCP tool and repository quality pass — 2026-09-13
+
+- All 76 registered MCP tools passed registry uniqueness, description, strict-schema, and protocol dispatch checks.
+- Shared validation rejects unknown arguments, values outside declared bounds, non-finite numbers, malformed nested objects, and invalid array members.
+- Functional suite: 54/54 tests passed.
+- Smoke, package verification, and isolated doctor checks passed.
+- Dense Chromium workspace suite passed with 80 cards, 55 connections, drag tracking, zoom/pan, activity, editors, deletion workflows, selected-node backglow, and breathing connections.
+- Chromium orbital suite passed texture, motion, failure fallback, GPU downsampling, context-loss, layout, and request-isolation checks.
+- The browser dependency is now declared and test scripts can use Playwright Chromium or an explicitly configured/local Chrome or Edge executable.
+- A SQLite-safe copy of the installed Eden database passed the project-integrity audit across 3,355 nodes and 3,621 edges with zero structural errors. The audit reported 117 non-blocking legacy-curation warnings: 54 missing importance rationales and 63 older evidence references without explicit source-layer metadata.
+
 ## Orbital motion refinement — 2026-09-13
 
 - Browser regression checks a star-free sky, CSS background blur, slow surface motion, and the direction of the surface movement using WebGL pixel correlation. Pause, reduced-motion, texture fallback, GPU downsampling, context loss and dense-graph interactions remain in the release gate.

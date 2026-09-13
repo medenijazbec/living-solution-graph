@@ -1,5 +1,13 @@
 # Changelog
 
+## Tool safety and repository documentation — 2026-09-13
+
+- Added a compact, searchable, paginated MCP tool catalog.
+- Added a read-only project-integrity audit for semantic identity collisions, orphan records, unsafe file mappings, dependency cycles, incomplete edge-case definitions, and stale semantic runs.
+- Enforced unknown-argument rejection, numeric bounds, finite numbers, string constraints, array constraints, and recursive nested-object validation across MCP tool schemas.
+- Added a registry contract suite that dispatches every exposed MCP tool.
+- Rebuilt the public README, installation guide, complete tool reference, community standards, contribution workflow, security policy, issue forms, pull-request template, and branded repository header.
+
 ## Orbital motion refinement — 2026-09-13
 
 - Turned Earth motion toward the viewer at a slow pitch rate, kept the horizon fixed, blurred the scene and removed stars from the sky. Graph dots remain.

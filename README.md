@@ -1,214 +1,159 @@
-# Living Solution Graph MCP v6.1.0
+<p align="center">
+  <a href="README.md">README</a> ·
+  <a href="docs/INSTALL.md">Install</a> ·
+  <a href="HOW_TO_USE_LSG.md">User guide</a> ·
+  <a href="docs/TOOLS.md">MCP tools</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="CODE_OF_CONDUCT.md">Code of conduct</a> ·
+  <a href="SECURITY.md">Security</a> ·
+  <a href="LICENSE">MIT license</a>
+</p>
 
-For progress tools, project memory, work claims and the new graph canvas, see [Workspace 6.1](docs/WORKSPACE_6_1.md).
+<p align="center">
+  <img src=".github/assets/lsg.png" alt="Living Solution Graph" width="880">
+</p>
 
-A runnable MCP server and persistent problem-solving runtime that turns ordinary Markdown plans into a connected, versioned solution graph, lets models add missing edge cases, tracks explicit implementation/verification switches, audits the entire graph, and compiles relevant project + user history context for model calls.
+<h1 align="center">Living Solution Graph</h1>
 
-**New here?** Read [HOW_TO_USE_LSG.md](HOW_TO_USE_LSG.md) for Windows installation, Codex MCP registration, semantic feature/edge-case workflows, `F1` addressing, hierarchy, and the web UI.
+<p align="center"><strong>Persistent project memory and an implementation graph for coding agents.</strong></p>
 
-## What is implemented
+<p align="center">
+  <a href="https://github.com/medenijazbec/living-solution-graph/releases"><img alt="release" src="https://img.shields.io/github/v/release/medenijazbec/living-solution-graph?style=flat-square&color=2f81f7"></a>
+  <a href="https://github.com/medenijazbec/living-solution-graph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/medenijazbec/living-solution-graph/ci.yml?branch=master&style=flat-square&label=build"></a>
+  <img alt="tests" src="https://img.shields.io/badge/tests-54%20passing-2ea043?style=flat-square">
+  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white">
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-stdio%20%7C%20HTTP-7c3aed?style=flat-square">
+  <img alt="runtime dependencies" src="https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9?style=flat-square">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-2ea043?style=flat-square"></a>
+</p>
 
-- **Markdown → graph bootstrap** with source hashing, explicit plan extraction, domain detection, starter coverage packs, generic edge-case expansion, preview, and atomic commit.
-- **Domain starter packs**: universal, game, website, web-app/SaaS, e-commerce, mobile, backend API, data pipeline, and AI/LLM.
-- **Explicit state switches** on graph nodes: `implemented`, `implementation_state`, `verification_state`, timestamps, node version, graph version, direct commit SHA, and inherited parent commit.
-- **Whole-graph audit**: implemented, not implemented, verified, unverified, stale, blocked, excluded/not-applicable, unresolved, and plan-claimed implementation.
-- **Model-created edge cases** through `solution.add_edge_case`; every new edge case starts `implemented=false`, `verification_state=unverified`.
-- **Codex-authored semantic layer**: validate and stage a source-linked implementation-unit/edge-case proposal, then automatically commit it by default. Pass `auto_commit=false` only for an explicitly requested review-only workflow. Semantic units drive the completion frontier when available.
-- **Persistent SQLite/WAL storage** with optimistic concurrency and event history.
-- **User history** stored separately from projects, with correction/forget semantics and token-budgeted compressed context.
-- **MCP over stdio and HTTP**, supporting modern MCP `2026-07-28` plus legacy 2025-era `initialize` clients.
-- **OpenAI-compatible facade**: `/v1/models`, `/v1/responses`, `/v1/chat/completions`; when an upstream is configured, LSG context is injected automatically.
-- **Connected graph web UI** with feature/edge-case squares, edges, implementation/verification badges, import preview/commit, state toggles, and node metadata.
-- **Security controls**: loopback-safe default, bearer auth for remote binding, Host/Origin checks, body-size limits, rate limiting, path traversal prevention, CORS allow-listing, security headers.
-- **Health and metrics**: `/healthz`, `/readyz`, `/metrics`.
+LSG turns a Markdown master plan into a connected, numbered backlog that an AI coding agent can query and update. Features, subfeatures, edge cases, dependencies, implementation plans, test evidence, Git commits, and durable project decisions remain available after the model's context window ends.
 
-## Requirements
+It works with Codex and other Model Context Protocol clients. No model API key or runtime npm dependency is required.
 
-- Node.js **22.5+**. This package was tested in the supplied environment on Node 22.16.0.
-- For production deployment, Node 26+ is recommended because `node:sqlite` is further along in its stability lifecycle.
-- No npm runtime dependencies are required.
+## Why use it?
 
-## Fastest local setup
+A long plan is useful to read, but difficult to execute reliably across many coding sessions. LSG adds a structured layer:
 
-```bash
-unzip living_solution_graph_v6_production.zip
-cd living_solution_graph_v6_production
+- Stable feature addresses such as `F1`, `F1.2`, and `F26.1`.
+- Addressable edge cases such as `F1.E1`.
+- Dependency-aware priority and completion calculations.
+- Markdown implementation plans attached to individual nodes.
+- Separate implementation and verification state backed by evidence.
+- Project-scoped memory and Git history.
+- Compact queries that avoid dumping the whole graph into model context.
+- A draggable, zoomable web workspace with semantic and source views.
+
+## Install in five minutes
+
+Requirements: [Node.js 22.5 or newer](https://nodejs.org/) and Git.
+
+```powershell
+git clone https://github.com/medenijazbec/living-solution-graph.git
+cd living-solution-graph
+npm ci
 node src/cli.mjs doctor
-npm test
-node src/cli.mjs http
+npm start
 ```
 
-Open `http://127.0.0.1:7347/` for the graph UI.
+Open [http://127.0.0.1:7347](http://127.0.0.1:7347). On a new Windows installation, durable local data defaults to `%LOCALAPPDATA%\LivingSolutionGraph` unless `LSG_DB_PATH` is configured.
 
-## Import into VS Code via stdio
+For macOS/Linux, Docker, remote HTTP, upgrades, and data paths, see the [installation guide](docs/INSTALL.md).
 
-Copy the server entry from `mcp.json.example` into your VS Code MCP configuration and replace the absolute paths. A ready workspace example is also included at `.vscode/mcp.json`.
+## Connect Codex
 
-Minimal shape:
+Start the HTTP server with `npm start`, then add this to `~/.codex/config.toml`:
 
-```json
-{
-  "servers": {
-    "living-solution-graph": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/absolute/path/to/src/cli.mjs", "stdio"],
-      "env": {
-        "LSG_DB_PATH": "/absolute/path/to/data/lsg.sqlite",
-        "LSG_WORKSPACE_ROOT": "/absolute/path/to/your/project"
-      }
-    }
-  }
-}
+```toml
+[mcp_servers.living_solution_graph]
+url = "http://127.0.0.1:7347/mcp"
+enabled = true
+startup_timeout_sec = 20
+tool_timeout_sec = 120
 ```
 
-`LSG_WORKSPACE_ROOT` is intentionally restrictive: Markdown plans referenced by `file_uri` cannot escape it.
-
-## Remote HTTP MCP
-
-```bash
-export LSG_HOST=0.0.0.0
-export LSG_PORT=7347
-export LSG_API_TOKEN='replace-with-a-long-random-secret'
-export LSG_ALLOWED_HOSTS='lsg.example.com'
-export LSG_ALLOWED_ORIGINS='https://lsg.example.com'
-node src/cli.mjs http
-```
-
-Then configure an MCP client to use `https://lsg.example.com/mcp` with `Authorization: Bearer ...`. See `docs/vscode-http.mcp.json`.
-
-The server refuses a non-loopback bind without a bearer token unless `LSG_ALLOW_INSECURE=true` is explicitly set.
-
-## First plan iteration
-
-A normal plan such as:
-
-```md
-# My game
-- 3D co-op game
-- Unity
-- player accounts
-- multiplayer backend
-- database for progression
-- in-game purchases
-```
-
-is processed as:
-
-1. Freeze/hash the source.
-2. Parse explicit plan atoms.
-3. Detect applicable archetypes.
-4. Apply universal + domain starter packs.
-5. Insert missing required/conditional/unresolved architecture coverage.
-6. Seed applicable starter edge cases.
-7. Expand generic edge cases from plan features.
-8. Preserve `[x]`/“done” as **source claims**, not verified implementation.
-9. Preview the graph.
-10. Atomically commit against an expected graph version.
-11. Audit the entire graph and expose its completion frontier.
-12. Continue evolving: newly found edge cases are inserted as new nodes instead of being left in prose.
-
-See `bootstrap/FIRST_ITERATION_PROTOCOL.md` and `bootstrap/PLAN_IMPORT_ACCEPTANCE_CASES.md`.
-
-## Core model workflow
+Restart Codex. You can then say:
 
 ```text
-solution.get_context
-solution.audit_implementation_status
-solution.get_frontier
-        ↓
-inspect one bounded feature / edge case
-        ↓
-solution.add_edge_case          (when a new case is discovered)
-        ↓
-implement + run tests
-        ↓
-solution.record_evidence
-        ↓
-solution.set_implementation_state(implemented=true)
-        ↓
-solution.set_verification_state(verified)
-        ↓
-repeat
+Use LSG to map the features and edge cases in C:\Projects\MyGame\MASTER_PLAN.md
 ```
 
-## Semantic feature-list workflow
+or:
 
-Ask Codex: **“Use the `living_solution_graph` MCP server to provide the semantic feature list for this project.”** The phrases **“use lsg”**, **“@lsg”**, and **“run lsg”** invoke this registered server. Codex resolves the working directory to its isolated project, imports the source plan, prepares the semantic feature set, and stages it. Staging validates and automatically commits by default; pass `auto_commit=false` only when you explicitly request a review-only stage.
-
-Semantic features are concise implementation units rather than one node per Markdown bullet. Each receives a human-facing number (`F1`, `F1.1`, `F1.2`), while its edge cases receive an addressable number (`F1.E1`, `F1.E2`), alongside stable semantic keys, priority, source-node references, acceptance criteria, dependencies, and scoped edge cases. Use `parent_key` to decompose a broad capability into buildable cascading child features—for example player movement into walking, vaulting, peeking, leaning, climbing, and prone. A later plan import marks semantic runs stale when its source hash changes, requiring a fresh review before replacement.
-
-Humans can request an amendment by number: “update F1” or “feature 1 needs …”. Codex resolves the number with `solution.resolve_semantic_feature_reference`, preserves source evidence and unaffected IDs, then updates the semantic set. The Semantic backlog shows per-feature recursive edge-case totals such as `F1 → 34 EC`; selecting a feature or edge case also exposes its Markdown implementation plan.
-
-For an explicit master-plan path, Codex should read the file, call `solution.resolve_workspace_project` with its containing directory, then call `solution.preview_markdown_plan` with the returned `project_id`, the plan text, and `source_file_path` set to the absolute `.md` path. This binds the project shown under **Projects** to that workspace folder; the bound path is displayed below the project selector. Commit the lexical import before preparing the semantic set. A browser file picker cannot reveal a trusted absolute path, so path-based binding is performed through the MCP workflow or the UI's `?workspace=<absolute-folder>` link.
-
-Each active semantic feature and edge case can have one Markdown implementation plan, stored in the LSG database with revisions. Use `solution.get_implementation_plan_coverage` (optionally `missing_only=true`) to find unwritten plans; the default filename is the stable number plus `-implementation-plan.md`, for example `F26.1.E1-implementation-plan.md`. `solution.set_node_implementation_plan` creates or replaces a plan, `solution.append_node_implementation_plan` adds a section, `solution.get_node_implementation_plan` reads it, and `solution.delete_node_implementation_plan` removes it after exact filename confirmation. An empty editor does not count as a written plan. Plans are attached database documents, not automatically created files in the game repository.
-
-For a large backlog, call `solution.get_next_missing_plans` with `project_id` and a page `limit` (1–25), then pass its `next_cursor` to retrieve the next page. The page includes each node's priority, source IDs, acceptance criteria, and edge-case scenario so an agent can author bounded plans. `solution.stage_plan_batch` accepts 1–25 `{node_id, markdown, file_name}` entries plus `expected_graph_version` and returns an explicit before/after review diff; it does not change live plans. Inspect with `solution.get_plan_batch`, then call `solution.apply_plan_batch` with the batch ID, current graph version, and exact `confirm_plan_count` to apply atomically. Document-version conflicts abort the whole batch. Semantic graph changes invalidate the cursor or staged batch, so refresh and review before retrying.
-
-`solution.export_project_snapshot` writes a compressed, checksummed project archive to LSG's managed `data/exports` directory and reports its path and SHA-256. `solution.restore_project_snapshot` requires that exact path, checksum, and project title; it refuses to overwrite an existing project. Exports include graph, source imports, semantic proposals, plans, project memory, history, and events, but not transient activity or UI card positions. Store a copy of the archive separately for disaster recovery.
-
-The canvas opens in **Priority rings**: P0 features form the innermost loose, staggered bands, followed by lower importance levels; related edge cases occupy adjacent outer bands. P0–P3 cards and connections have distinct priority colors, and the guides are intentionally irregular rather than rigid circles. The adjacent **Normal graph** radio button restores the original hierarchy layout. Dragged connections follow their card on every animation frame, and **Fit graph** may zoom out to 2.5% so even a large backlog fits in view. The chosen mode, manual card placement, and zoom are saved locally per project and view. **Enable live activity** is off by default; when enabled, mapped-file changes pulse affected cards and edges and show a temporary **LIVING** indicator. It records no file contents or durable activity history.
-
-Select a semantic edge case in the web UI to edit its title, description, trigger, expected behavior, validation scenario, or severity; its E-number and source links remain stable. **Delete edge case** requires confirmation and removes it from the active backlog while keeping its revision history. **Delete project** requires typing the exact title and permanently removes the project's graph, imports, plans, workspace records, and project memory. Export anything you need before deleting a project.
-
-Implementation and verification are deliberately separate. Reverting `implemented` on a verified node automatically marks verification stale.
-
-## Major MCP tools
-
-`solution.bootstrap_from_markdown_plan`, `solution.preview_markdown_plan`, `solution.commit_plan_import`, `solution.prepare_semantic_feature_set`, `solution.stage_semantic_feature_set`, `solution.commit_semantic_feature_set`, `solution.get_semantic_feature_list`, `solution.get_semantic_edge_cases`, `solution.update_semantic_edge_case`, `solution.delete_semantic_edge_case`, `solution.get_semantic_diff`, `solution.get_implementation_plan_coverage`, `solution.set_node_implementation_plan`, `solution.append_node_implementation_plan`, `solution.delete_node_implementation_plan`, `solution.delete_project`, `solution.audit_implementation_status`, `solution.add_edge_case`, `solution.set_implementation_state`, `solution.set_verification_state`, `solution.record_evidence`, `solution.get_graph_view`, `solution.find_gaps`, `solution.get_frontier`, `solution.get_context`, starter-pack tools, and `memory.*` history tools.
-
-For routine agent navigation, prefer `solution.run_program`. It is a compact MCP program runner with `overview`, `feature`, `next_work`, `missing_plans`, and `search` modes. Results default to five items and are capped at ten, returning stable IDs and state rather than entire graph records. Use the focused full-detail tools only when the next action actually needs their evidence or mutation fields. This avoids duplicating a large project graph in Codex context.
-
-Use `solution.select_node_neighborhood` to retrieve a selected feature or edge case plus every directly connected graph node. Use `solution.select_node_cascade` for wider context: `cascade_depth=0` is the direct neighborhood, while `cascade_depth=1` also includes every neighbor's neighbors. Cascades are cycle-safe, capped at five extra generations and 250 nodes, report truncation, and return compact node state plus only the connections inside the selection.
-
-The MCP server also exposes graph/audit/user-context resources and reusable prompts for bootstrap, continuation, implementation, audit, and domain coverage.
-
-## OpenAI-compatible model facade
-
-Configure an upstream:
-
-```bash
-export LSG_UPSTREAM_BASE_URL='https://your-openai-compatible-provider.example/v1'
-export LSG_UPSTREAM_API_KEY='...'
+```text
+@lsg inspect F14.1, its edge cases, and its direct neighbors.
 ```
 
-Then use:
+LSG also supports stdio clients. Copy and adapt [`mcp.json.example`](mcp.json.example).
 
-- `GET /v1/models`
-- `POST /v1/responses`
-- `POST /v1/chat/completions`
+## Typical workflow
 
-Send `x-lsg-project-id` and optionally `x-lsg-user-id`, or put `lsg_project_id` / `lsg_user_id` in `metadata`. The server injects a bounded project graph, completion frontier, and relevant compressed user history. If only a user id is supplied, the user-memory context is still injected.
+```text
+Markdown master plan
+        ↓
+lexical source graph
+        ↓
+semantic features + subfeatures + edge cases
+        ↓
+dependency-ready implementation frontier
+        ↓
+implementation plan → code → tests → evidence → verification
+```
 
-Model aliases are configured with `LSG_MODEL_MAP_JSON`.
+The agent resolves the project from the plan's directory, updates the source graph, authors a semantic feature set, and stores the result. Later prompts can address nodes by number without rereading the entire plan.
 
-## Persistence and concurrency
+Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **76 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
 
-SQLite is configured with WAL, foreign keys, busy timeout, and explicit transactions. Mutating graph tools use graph versions and, where applicable, node versions to prevent silent last-write-wins corruption.
+## Safe state changes
 
-For a single server process this is a durable production topology. For horizontally scaled/HA deployment, replace the storage adapter with a shared transactional datastore before running multiple writers; SQLite files are not intended to be a multi-host coordination layer.
+LSG treats these as different facts:
 
-## Testing
+1. Code was implemented.
+2. Current evidence verifies that implementation.
 
-Run:
+Changing a requirement or reopening implementation makes previous verification stale. Mutating operations use graph, node, and document versions to prevent silent overwrites. Destructive project, edge-case, plan, and restore operations require explicit confirmations.
 
-```bash
+## Data and privacy
+
+- Project data is stored in SQLite with WAL and foreign-key enforcement.
+- Personal memory and project memory are separate.
+- Live activity is off after every server restart and stays in memory only.
+- File access is limited to explicitly mapped paths inside the bound workspace.
+- Secrets, dependencies, Git internals, generated output, and LSG data are excluded.
+- Remote binds require bearer authentication unless insecure mode is explicitly enabled.
+
+Read the [security policy](SECURITY.md) and [production guide](docs/PRODUCTION.md) before exposing LSG outside localhost.
+
+## Development
+
+```powershell
 npm test
+npx playwright install chromium
+npm run test:browser
+npm run test:orbital
 npm run smoke
 npm run verify
+node src/cli.mjs doctor
 ```
 
-The included suite covers Markdown bootstrap, domain seeding, source implementation claims, model-created edge cases, implementation/verification transitions, inherited commits, user memory, workspace path safety, modern MCP 2026 behavior, legacy MCP, HTTP auth/header validation, HTTP MCP E2E, stdio E2E, web UI serving, OpenAI facade behavior when unconfigured, and package syntax/integrity.
+The registry contract suite dispatches every MCP tool, checks unique names and strict schemas, and tests unknown arguments, bounds, malformed nested input, compact catalog pagination, and graph-integrity failures. Behavioral suites cover imports, semantic proposals, plans, work claims, memory, activity, Git history, snapshots, HTTP/stdio MCP, security, and the browser workspace.
 
-See `TEST_REPORT.md` for the exact run performed when this bundle was produced.
+## Documentation
 
-## Operational notes
+| Guide | Purpose |
+| --- | --- |
+| [Install](docs/INSTALL.md) | Local, Codex, VS Code, stdio, HTTP, Docker, upgrade, and uninstall instructions |
+| [How to use LSG](HOW_TO_USE_LSG.md) | Plain-language day-to-day workflows and prompts |
+| [MCP tool catalog](docs/TOOLS.md) | All tools grouped by job |
+| [Workspace 6.1](docs/WORKSPACE_6_1.md) | Progress, memory, work claims, live activity, and canvas behavior |
+| [Architecture](docs/living_solution_graph_v6_architecture.md) | Runtime and storage design |
+| [Production](docs/PRODUCTION.md) | Secure single-writer deployment |
+| [Changelog](CHANGELOG.md) | Release history |
 
-- Keep the SQLite database and WAL files on persistent local storage.
-- Back up the database using a filesystem/database-safe snapshot strategy.
-- Put remote HTTP behind TLS/reverse proxy and use `LSG_API_TOKEN` at minimum; OAuth is not implemented in this bundle.
-- Do not store credentials as user-memory atoms. Store only references to an external secret manager.
-- The built-in rate limiter is per-process; use gateway-level limiting for distributed deployments.
+## Community
 
-See `docs/PRODUCTION.md` and `docs/SECURITY.md`.
+Bug reports and focused feature proposals are welcome. Please read [Contributing](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. Report vulnerabilities privately according to [Security](SECURITY.md).
+
+## License
+
+Living Solution Graph is available under the [MIT License](LICENSE).

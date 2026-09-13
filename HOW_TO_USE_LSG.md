@@ -1,5 +1,9 @@
 # How to use Living Solution Graph
 
+For installation on Windows, macOS, Linux, Docker, Codex, and VS Code, start with [docs/INSTALL.md](docs/INSTALL.md). For the exact current MCP surface, see [docs/TOOLS.md](docs/TOOLS.md).
+
+For a compact list of tools inside an agent session, call `solution.get_tool_catalog` with an optional `query`, `category`, `cursor`, and `limit`. Before a release, backup, or large semantic update, call `solution.validate_project_integrity`; it is read-only and reports graph consistency errors separately from curation warnings.
+
 New in 6.1: [progress, importance, work claims, memory, history and live canvas](docs/WORKSPACE_6_1.md).
 
 Living Solution Graph (LSG) is a local MCP server that converts a Markdown plan into a persistent, traceable implementation graph. It keeps the original plan as a source layer and, when requested, creates a separate semantic backlog: bounded implementation features, dependencies, acceptance criteria, and edge cases.
