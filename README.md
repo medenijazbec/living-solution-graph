@@ -160,6 +160,8 @@ Implementation and verification are deliberately separate. Reverting `implemente
 
 For routine agent navigation, prefer `solution.run_program`. It is a compact MCP program runner with `overview`, `feature`, `next_work`, `missing_plans`, and `search` modes. Results default to five items and are capped at ten, returning stable IDs and state rather than entire graph records. Use the focused full-detail tools only when the next action actually needs their evidence or mutation fields. This avoids duplicating a large project graph in Codex context.
 
+Use `solution.select_node_neighborhood` to retrieve a selected feature or edge case plus every directly connected graph node. Use `solution.select_node_cascade` for wider context: `cascade_depth=0` is the direct neighborhood, while `cascade_depth=1` also includes every neighbor's neighbors. Cascades are cycle-safe, capped at five extra generations and 250 nodes, report truncation, and return compact node state plus only the connections inside the selection.
+
 The MCP server also exposes graph/audit/user-context resources and reusable prompts for bootstrap, continuation, implementation, audit, and domain coverage.
 
 ## OpenAI-compatible model facade

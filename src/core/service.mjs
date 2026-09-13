@@ -190,6 +190,26 @@ export class LsgService {
     return {project:{id:p.id,title:p.title,graph_version:p.graph_version},nodes:nodes.map(n=>({...n,effective_commit:this.effectiveCommit(n)})),edges,generated_at:nowIso()};
   }
 
+  resolveSelectableNode(input){
+    const project=this.store.requireProject(input.project_id),nodes=this.store.listNodes(project.id).filter(node=>node.status==='active'&&['feature','edge_case'].includes(node.type));
+    if(input.node_id){const node=nodes.find(item=>item.id===input.node_id);if(!node)throw toolError('Active feature or edge case not found','NODE_NOT_FOUND');return node;}
+    const raw=String(input.reference||'').trim();if(!raw)throw toolError('reference or node_id is required','INVALID_ARGUMENT');const display=/^\d/.test(raw)?`F${raw}`:raw;
+    const matches=nodes.filter(node=>node.metadata?.display_id?.toLowerCase()===display.toLowerCase()||node.metadata?.semantic_key===raw||normalizeTitle(node.title)===normalizeTitle(raw));
+    if(matches.length!==1)throw toolError(matches.length?'Node reference is ambiguous':`Node reference not found: ${raw}`,matches.length?'AMBIGUOUS_REFERENCE':'NODE_NOT_FOUND');return matches[0];
+  }
+
+  selectNodeCascade(input){
+    const project=this.store.requireProject(input.project_id),selected=this.resolveSelectableNode(input),cascadeDepth=Math.max(0,Math.min(5,Number(input.cascade_depth)||0)),maxHops=cascadeDepth+1,maxNodes=Math.max(2,Math.min(250,Number(input.max_nodes)||100));
+    const active=new Map(this.store.listNodes(project.id).filter(node=>node.status==='active').map(node=>[node.id,node])),edges=this.store.listEdges(project.id).filter(edge=>active.has(edge.source_id)&&active.has(edge.target_id)),adjacent=new Map();
+    for(const edge of edges){if(!adjacent.has(edge.source_id))adjacent.set(edge.source_id,[]);if(!adjacent.has(edge.target_id))adjacent.set(edge.target_id,[]);adjacent.get(edge.source_id).push({id:edge.target_id,edge});adjacent.get(edge.target_id).push({id:edge.source_id,edge});}
+    const hops=new Map([[selected.id,0]]),queue=[selected.id];let truncated=false;
+    while(queue.length){const id=queue.shift(),hop=hops.get(id);if(hop>=maxHops)continue;for(const next of adjacent.get(id)||[]){if(hops.has(next.id))continue;if(hops.size>=maxNodes){truncated=true;continue;}hops.set(next.id,hop+1);queue.push(next.id);}}
+    const priorityOf=node=>{const seen=new Set();let current=node;while(current&&!seen.has(current.id)){seen.add(current.id);if(current.metadata?.priority)return current.metadata.priority;current=active.get(current.parent_id);}return null;},slim=node=>({node_id:node.id,display_id:node.metadata?.display_id||null,type:node.type,title:node.title,priority:priorityOf(node),implementation_state:node.implementation_state,verification_state:node.verification_state,has_plan:!!this.store.getNodeDocument(node.id)?.markdown?.trim(),hop:hops.get(node.id)}),nodes=[...hops].map(([id])=>active.get(id)).sort((a,b)=>hops.get(a.id)-hops.get(b.id)||String(a.metadata?.display_id||a.title).localeCompare(String(b.metadata?.display_id||b.title),'en',{numeric:true}));
+    const included=new Set(hops.keys()),connections=edges.filter(edge=>included.has(edge.source_id)&&included.has(edge.target_id)).map(edge=>({source_id:edge.source_id,target_id:edge.target_id,type:edge.type}));
+    return {project_id:project.id,graph_version:project.graph_version,selected:slim(selected),cascade_depth:cascadeDepth,max_hops:maxHops,node_count:nodes.length,connection_count:connections.length,truncated,nodes:nodes.map(slim),connections};
+  }
+  selectNodeNeighborhood(input){return this.selectNodeCascade({...input,cascade_depth:0});}
+
   search(input) {
     const q=normalizeTitle(input.query); const terms=q.split(' ').filter(Boolean); const rows=this.store.listNodes(input.project_id); const scored=rows.map(n=>{const t=normalizeTitle(`${n.title} ${n.description}`);let s=0;for(const x of terms)if(t.includes(x))s++;return {n,s};}).filter(x=>x.s>0).sort((a,b)=>b.s-a.s||a.n.title.localeCompare(b.n.title)).slice(0,input.limit||50); return scored.map(x=>({...x.n,score:x.s}));
   }
