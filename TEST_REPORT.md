@@ -1,5 +1,9 @@
 # LSG 6.1.0 release verification
 
+## Orbital motion refinement — 2026-09-13
+
+- Browser regression checks a star-free sky, CSS background blur, slow surface motion, and the direction of the surface movement using WebGL pixel correlation. Pause, reduced-motion, texture fallback, GPU downsampling, context loss and dense-graph interactions remain in the release gate.
+
 ## Orbital workspace update — 2026-09-13
 
 - 40 automated tests passed; smoke, package verification (32 JavaScript files) and isolated doctor passed.

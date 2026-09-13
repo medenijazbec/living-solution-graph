@@ -8,21 +8,8 @@ const fragmentSource = `
 precision highp float;
 uniform vec2 resolution;
 uniform sampler2D earthMap;
-uniform float rotation;
+uniform float forwardMotion;
 const float PI = 3.14159265359;
-
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
-
-vec3 stars(vec2 pixel) {
-  vec2 cell = floor(pixel / 5.0);
-  float seed = hash(cell);
-  vec2 local = fract(pixel / 5.0) - vec2(hash(cell+13.0),hash(cell+31.0));
-  float point = exp(-dot(local,local)*70.0) * step(.943,seed);
-  float band = exp(-pow((pixel.x/resolution.x-.47 + pixel.y/resolution.y*.18) * 5.0,2.0));
-  vec3 tint = mix(vec3(.62,.76,1.0),vec3(1.0,.91,.78),hash(cell+5.0));
-  float brightStar = exp(-dot(local,local)*13.0)*step(.997,seed);
-  return tint*(point*(.65+1.0*hash(cell+7.0))*(.65+.35*band)+brightStar*.36);
-}
 
 void main() {
   vec2 p = (gl_FragCoord.xy - resolution * .5) / resolution.y;
@@ -30,7 +17,7 @@ void main() {
   float radius = 4.1;
   vec2 q = p - vec2(0.0, -radius-.11);
   float distanceToLimb = length(q)-radius;
-  vec3 color = vec3(.001,.003,.008) + stars(gl_FragCoord.xy);
+  vec3 color = vec3(.001,.003,.008);
   // Stacked white/cyan/blue atmosphere with distinct falloff widths.
   if (distanceToLimb > 0.0) {
     color += vec3(.015,.11,.38)*exp(-distanceToLimb*30.0);
@@ -39,10 +26,11 @@ void main() {
   } else {
     vec3 normal = vec3(q/radius, sqrt(max(0.0,1.0-dot(q,q)/(radius*radius))));
     // Tilt the sphere to frame the Atlantic/Caribbean beneath the cloud layer.
-    float tilt = 1.0;
+    // Decreasing pitch carries surface detail down from the horizon toward the viewer.
+    float tilt = 1.0 - forwardMotion;
     vec3 mapped = vec3(normal.x, normal.y*cos(tilt)-normal.z*sin(tilt),
                       normal.y*sin(tilt)+normal.z*cos(tilt));
-    float longitude = atan(mapped.z,mapped.x) / (2.0*PI) + .5 + rotation;
+    float longitude = atan(mapped.z,mapped.x) / (2.0*PI) + .025;
     vec2 uv = vec2(fract(longitude), asin(clamp(mapped.y,-1.0,1.0))/PI+.5);
     vec3 surface = texture2D(earthMap,uv).rgb;
     float light = .72 + .28*max(dot(normal,normalize(vec3(-.2,.6,1.0))),0.0);
@@ -78,7 +66,8 @@ function initializeOrbit(canvas, button) {
   const fallback = () => { failed = true; stop(); state(); };
   const draw = () => {
     if (!ready || failed || disposed) return;
-    gl.uniform1f(gl.getUniformLocation(program,'rotation'), -.475 + elapsed / 300000);
+    // About one forward revolution every 52 minutes; the horizon stays fixed.
+    gl.uniform1f(gl.getUniformLocation(program,'forwardMotion'), (elapsed / 500000) % (Math.PI * 2));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
   const tick = now => {

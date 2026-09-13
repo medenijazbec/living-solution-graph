@@ -49,13 +49,24 @@ try{
   const first=await canvas.screenshot();await page.waitForTimeout(1200);
   assert.notDeepEqual(await canvas.screenshot(),first,'Earth does not rotate');
   const stars=await page.evaluate(async encoded=>{const image=new Image();image.src='data:image/png;base64,'+encoded;await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);const pixels=ctx.getImageData(0,0,c.width,Math.floor(c.height*.4)).data;let bright=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]+pixels[i+1]+pixels[i+2]>180)bright++;return bright;},first.toString('base64'));
-  assert.ok(stars>=400,`Star field is too faint: ${stars} visible pixels`);
+  assert.ok(stars<10,`Star field remains visible: ${stars} bright pixels`);
+  assert.match(await canvas.evaluate(el=>getComputedStyle(el).filter),/blur\(/,'Earth backdrop is not blurred');
   const textureWidth=await page.evaluate(async()=>{const image=new Image();image.src='/assets/earth/earth-viirs.webp';await image.decode();return image.naturalWidth;});assert.ok(textureWidth>=8192,'Earth/cloud texture below requested high detail');
   await page.locator('style').last().evaluate(el=>el.remove());
   await page.locator('#toggleOrbit').click();
   await page.waitForSelector('#orbitalBackground[data-state="paused"]');
   const paused=await canvas.screenshot();await page.waitForTimeout(250);
   assert.deepEqual(await canvas.screenshot(),paused,'Paused background moves');
+  const motion=await canvas.evaluate(el=>{
+    const gl=el.getContext('webgl'),program=gl.getParameter(gl.CURRENT_PROGRAM),uniform=gl.getUniformLocation(program,'forwardMotion');
+    const width=el.width,height=el.height,bytes=width*height*4;
+    const read=angle=>{gl.uniform1f(uniform,angle);gl.drawArrays(gl.TRIANGLES,0,3);const pixels=new Uint8Array(bytes);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);return pixels;};
+    const before=read(0),after=read(.005),score=(dx,dy)=>{let error=0;for(let y=90;y<340;y+=8)for(let x=width*.35;x<width*.65;x+=8){const a=(Math.floor(y)*width+Math.floor(x))*4,b=(Math.floor(y+dy)*width+Math.floor(x+dx))*4;for(let c=0;c<3;c++)error+=Math.abs(before[a+c]-after[b+c]);}return error;};
+    const candidates=Array.from({length:81},(_,i)=>i-40),vertical=candidates.map(d=>({shift:d,error:score(0,d)})).sort((a,b)=>a.error-b.error)[0],horizontal=candidates.map(d=>({shift:d,error:score(d,0)})).sort((a,b)=>a.error-b.error)[0];
+    return {vertical,horizontal};
+  });
+  assert.ok(motion.vertical.shift< -5,`Earth surface does not approach viewer: ${JSON.stringify(motion)}`);
+  assert.ok(motion.vertical.error<motion.horizontal.error,`Sideways motion dominates: ${JSON.stringify(motion)}`);
   await page.locator('#toggleOrbit').click();await page.waitForSelector('#orbitalBackground[data-state="running"]');
   await page.emulateMedia({reducedMotion:'reduce'});await page.waitForSelector('#orbitalBackground[data-state="paused"]');
   const reduced=await canvas.screenshot();await page.waitForTimeout(250);
@@ -70,6 +81,6 @@ try{
   const limited=await browser.newPage();await limited.addInitScript(()=>{const parameter=WebGLRenderingContext.prototype.getParameter,upload=WebGLRenderingContext.prototype.texImage2D;WebGLRenderingContext.prototype.getParameter=function(name){return name===this.MAX_TEXTURE_SIZE?1024:parameter.call(this,name);};WebGLRenderingContext.prototype.texImage2D=function(...args){const image=args[5];if(image?.width>1024)return upload.call(this,this.TEXTURE_2D,0,this.RGB,-1,-1,0,this.RGB,this.UNSIGNED_BYTE,null);return upload.apply(this,args);};});await limited.goto(base);await limited.waitForSelector('#orbitalBackground[data-state="running"]');await limited.close();
   await page.locator('#orbitalBackground').evaluate(el=>el.getContext('webgl').getExtension('WEBGL_lose_context').loseContext());await page.waitForSelector('#orbitalBackground[data-state="fallback"]');
   assert.deepEqual(external,[],'Unexpected external runtime requests');
-  console.log(JSON.stringify({ok:true,tested:['rotation','visible stars','8K Earth/cloud detail','pause','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
+  console.log(JSON.stringify({ok:true,tested:['slow forward rotation','star-free sky','blurred backdrop','8K Earth/cloud detail','pause','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
   assert.deepEqual(errors,[]);
 }finally{await browser.close();await server.close();store.close();}

@@ -1,5 +1,9 @@
 # Changelog
 
+## Orbital motion refinement — 2026-09-13
+
+- Turned Earth motion toward the viewer at a slow pitch rate, kept the horizon fixed, blurred the scene and removed stars from the sky. Graph dots remain.
+
 ## Workspace visual update — 2026-09-13
 
 - Added a local 8K NASA Earth/cloud orbital background, layered atmospheric glow and procedural stars, with pause and reduced-motion controls.

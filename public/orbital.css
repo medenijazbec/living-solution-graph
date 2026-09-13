@@ -30,7 +30,7 @@ input[type=file]::file-selector-button {font:inherit;border:1px solid #ffffff45;
 
 /* One continuous orbital scene, visible through all panel surfaces. */
 body {isolation:isolate;background:#02050a;}
-#orbitalBackground {position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 115%,#173d62 0%,#050a13 50%,#010307 80%);}
+#orbitalBackground {position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;filter:blur(6px);background:radial-gradient(ellipse at 50% 115%,#173d62 0%,#050a13 50%,#010307 80%);}
 body>header {background:rgba(5,10,17,.76);}
 body>main {background:transparent;}
 body .leftPanel,body .details {background:rgba(8,15,25,.76);}
