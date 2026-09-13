@@ -53,10 +53,7 @@ try{
   assert.match(await canvas.evaluate(el=>getComputedStyle(el).filter),/blur\(/,'Earth backdrop is not blurred');
   const textureWidth=await page.evaluate(async()=>{const image=new Image();image.src='/assets/earth/earth-viirs.webp';await image.decode();return image.naturalWidth;});assert.ok(textureWidth>=8192,'Earth/cloud texture below requested high detail');
   await page.locator('style').last().evaluate(el=>el.remove());
-  await page.locator('#toggleOrbit').click();
-  await page.waitForSelector('#orbitalBackground[data-state="paused"]');
-  const paused=await canvas.screenshot();await page.waitForTimeout(250);
-  assert.deepEqual(await canvas.screenshot(),paused,'Paused background moves');
+  assert.equal(await page.locator('#toggleOrbit').count(),0,'Earth pause control should be absent');
   const motion=await canvas.evaluate(el=>{
     const gl=el.getContext('webgl'),program=gl.getParameter(gl.CURRENT_PROGRAM),uniform=gl.getUniformLocation(program,'forwardMotion');
     const width=el.width,height=el.height,bytes=width*height*4;
@@ -67,7 +64,6 @@ try{
   });
   assert.ok(motion.vertical.shift< -5,`Earth surface does not approach viewer: ${JSON.stringify(motion)}`);
   assert.ok(motion.vertical.error<motion.horizontal.error,`Sideways motion dominates: ${JSON.stringify(motion)}`);
-  await page.locator('#toggleOrbit').click();await page.waitForSelector('#orbitalBackground[data-state="running"]');
   await page.emulateMedia({reducedMotion:'reduce'});await page.waitForSelector('#orbitalBackground[data-state="paused"]');
   const reduced=await canvas.screenshot();await page.waitForTimeout(250);
   assert.deepEqual(await canvas.screenshot(),reduced,'Reduced-motion background moves');
@@ -81,6 +77,6 @@ try{
   const limited=await browser.newPage();await limited.addInitScript(()=>{const parameter=WebGLRenderingContext.prototype.getParameter,upload=WebGLRenderingContext.prototype.texImage2D;WebGLRenderingContext.prototype.getParameter=function(name){return name===this.MAX_TEXTURE_SIZE?1024:parameter.call(this,name);};WebGLRenderingContext.prototype.texImage2D=function(...args){const image=args[5];if(image?.width>1024)return upload.call(this,this.TEXTURE_2D,0,this.RGB,-1,-1,0,this.RGB,this.UNSIGNED_BYTE,null);return upload.apply(this,args);};});await limited.goto(base);await limited.waitForSelector('#orbitalBackground[data-state="running"]');await limited.close();
   await page.locator('#orbitalBackground').evaluate(el=>el.getContext('webgl').getExtension('WEBGL_lose_context').loseContext());await page.waitForSelector('#orbitalBackground[data-state="fallback"]');
   assert.deepEqual(external,[],'Unexpected external runtime requests');
-  console.log(JSON.stringify({ok:true,tested:['slow forward rotation','star-free sky','blurred backdrop','8K Earth/cloud detail','pause','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
+  console.log(JSON.stringify({ok:true,tested:['slow forward rotation','star-free sky','blurred backdrop','8K Earth/cloud detail','no pause button','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
   assert.deepEqual(errors,[]);
 }finally{await browser.close();await server.close();store.close();}

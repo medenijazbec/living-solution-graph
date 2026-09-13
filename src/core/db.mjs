@@ -253,6 +253,7 @@ export class LsgStore {
     return r ? this.mapProject(r) : null;
   }
   listProjects() { return this.db.prepare('SELECT * FROM projects ORDER BY updated_at DESC').all().map(r => this.mapProject(r)); }
+  deleteProject(id) { this.requireProject(id);return this.tx(()=>{this.db.prepare('DELETE FROM memories WHERE project_id=?').run(id);this.db.prepare('DELETE FROM projects WHERE id=?').run(id);for(const table of ['workspace_records','record_revisions','node_revisions','events'])this.db.prepare(`DELETE FROM ${table} WHERE project_id=?`).run(id);return {id,deleted:true};}); }
   mapProject(r) { return { ...r, metadata: p(r.metadata_json, {}), metadata_json: undefined }; }
 
   updateProjectMetadata(id, metadata) {
@@ -336,7 +337,7 @@ export class LsgStore {
     if (!old) { const e=new Error(`Node not found: ${id}`); e.code='NODE_NOT_FOUND'; throw e; }
     if (expectedVersion != null && old.version !== expectedVersion) { const e=new Error(`Node version conflict: expected ${expectedVersion}, current ${old.version}`); e.code='NODE_VERSION_CONFLICT'; e.current_node_version=old.version; throw e; }
     const merged = { ...old, ...patch, version: old.version + 1, updated_at: nowIso(), metadata: { ...old.metadata, ...(patch.metadata || {}) } };
-    const definitionChanged=old.title!==merged.title||old.description!==merged.description||['acceptance_criteria','non_goals','trigger','validation_scenario','source_node_ids'].some(k=>JSON.stringify(old.metadata[k])!==JSON.stringify(merged.metadata[k]));
+    const definitionChanged=old.title!==merged.title||old.description!==merged.description||['acceptance_criteria','non_goals','trigger','expected_behavior','validation_scenario','source_node_ids'].some(k=>JSON.stringify(old.metadata[k])!==JSON.stringify(merged.metadata[k]));
     if(definitionChanged){merged.verification_state=old.implemented?'stale':'unverified';merged.verified_at=null;merged.last_invalidated_at=nowIso();}
     this.db.prepare(`UPDATE nodes SET title=?,description=?,origin=?,status=?,implemented=?,implementation_state=?,verification_state=?,
       source_claimed_implemented=?,disposition=?,parent_id=?,commit_sha=?,version=?,updated_at=?,implemented_at=?,verified_at=?,last_invalidated_at=?,metadata_json=? WHERE id=?`).run(
@@ -371,6 +372,7 @@ export class LsgStore {
   listEdges(projectId) { return this.db.prepare('SELECT * FROM edges WHERE project_id=? ORDER BY created_at,id').all(projectId).map(r=>({...r,metadata:p(r.metadata_json,{}),metadata_json:undefined})); }
 
   getNodeDocument(nodeId,kind='implementation_plan') { return this.db.prepare('SELECT * FROM node_documents WHERE node_id=? AND kind=?').get(nodeId,kind)||null; }
+  deleteNodeDocument(nodeId,expectedVersion=null){const current=this.getNodeDocument(nodeId);if(!current)return null;if(expectedVersion!=null&&current.version!==expectedVersion){const e=new Error(`Document version conflict: expected ${expectedVersion}, current ${current.version}`);e.code='DOCUMENT_VERSION_CONFLICT';throw e;}this.db.prepare('DELETE FROM node_documents WHERE id=?').run(current.id);return current;}
   upsertNodeDocument(input) {
     const current=this.getNodeDocument(input.node_id,input.kind||'implementation_plan');const t=nowIso();
     if(current){if(input.expected_version!=null&&current.version!==input.expected_version){const e=new Error(`Document version conflict: expected ${input.expected_version}, current ${current.version}`);e.code='DOCUMENT_VERSION_CONFLICT';e.current_document_version=current.version;throw e;}this.db.prepare('UPDATE node_documents SET file_name=?,markdown=?,sha256=?,version=version+1,actor=?,updated_at=? WHERE id=?').run(input.file_name,input.markdown,input.sha256,input.actor||'user',t,current.id);return this.getNodeDocument(input.node_id,input.kind||'implementation_plan');}

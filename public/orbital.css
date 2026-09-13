@@ -42,4 +42,7 @@ body .cards .node {background:rgba(13,23,36,.94);}
 body .auditCard {background:rgba(8,17,29,.82);}
 body input,body select,body textarea,body .markdown-body {background:rgba(6,14,24,.9);}
 body .tabs {background:rgba(6,14,24,.82);}
-#toggleOrbit {color:#bdd5eb;white-space:nowrap;}
+.dangerButton {color:#ffd5d5;border-color:#a65c5c;background:rgba(75,22,28,.72);}
+.dangerButton:hover {border-color:#efaaa9;background:rgba(98,31,40,.84);}
+#deleteProject {margin-top:10px;}
+.semantic-feature-form .dangerButton {margin-left:6px;}

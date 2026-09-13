@@ -32,7 +32,10 @@ void main() {
                       normal.y*sin(tilt)+normal.z*cos(tilt));
     float longitude = atan(mapped.z,mapped.x) / (2.0*PI) + .025;
     vec2 uv = vec2(fract(longitude), asin(clamp(mapped.y,-1.0,1.0))/PI+.5);
-    vec3 surface = texture2D(earthMap,uv).rgb;
+    // NASA's rectangular mosaic includes a black no-data strip above the north pole.
+    // Keep the visible cap on the last valid imagery and fade into ice instead of a void.
+    vec3 surface = texture2D(earthMap,vec2(uv.x,min(uv.y,.925))).rgb;
+    surface = mix(surface,vec3(.78,.86,.9),smoothstep(.91,.99,uv.y)*.85);
     float light = .72 + .28*max(dot(normal,normalize(vec3(-.2,.6,1.0))),0.0);
     color = surface * light;
     float ocean = smoothstep(.005,.04,surface.b-max(surface.r,surface.g));
@@ -46,28 +49,23 @@ void main() {
 }
 `;
 
-function initializeOrbit(canvas, button) {
+function initializeOrbit(canvas) {
   const listeners = new AbortController();
   const media = matchMedia('(prefers-reduced-motion: reduce)');
   let gl, program, buffer, texture;
   let ready = false, failed = false, disposed = false, frame = 0;
-  let lastTime = 0, elapsed = 0, paused = false;
-  try { paused = localStorage.getItem('lsg-orbit-paused') === 'true'; } catch {}
+  let lastTime = 0, elapsed = 0;
 
   const stop = () => { cancelAnimationFrame(frame); frame = 0; lastTime = 0; };
-  const moving = () => ready && !failed && !disposed && !paused && !media.matches && !document.hidden;
+  const moving = () => ready && !failed && !disposed && !media.matches && !document.hidden;
   const state = () => {
     canvas.dataset.state = failed ? 'fallback' : moving() ? 'running' : ready ? 'paused' : 'loading';
-    button.disabled = failed || media.matches || !ready;
-    button.textContent = failed ? 'Earth unavailable' : media.matches ? 'Earth · still' : paused ? 'Resume Earth' : 'Pause Earth';
-    button.setAttribute('aria-pressed', String(paused || media.matches));
-    button.title = failed ? 'Decorative scene unavailable; workspace remains functional' : media.matches ? 'Animation disabled by your reduced-motion preference' : 'Pause or resume decorative Earth rotation';
   };
   const fallback = () => { failed = true; stop(); state(); };
   const draw = () => {
     if (!ready || failed || disposed) return;
     // About one forward revolution every 52 minutes; the horizon stays fixed.
-    gl.uniform1f(gl.getUniformLocation(program,'forwardMotion'), (elapsed / 500000) % (Math.PI * 2));
+    gl.uniform1f(gl.getUniformLocation(program,'forwardMotion'), (elapsed * 1.01 / 500000) % (Math.PI * 2));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
   const tick = now => {
@@ -155,11 +153,6 @@ function initializeOrbit(canvas, button) {
   } catch { fallback(); }
 
   const options = {signal:listeners.signal};
-  button.addEventListener('click',() => {
-    paused = !paused;
-    try { localStorage.setItem('lsg-orbit-paused',String(paused)); } catch {}
-    sync();
-  },options);
   document.addEventListener('visibilitychange',sync,options);
   media.addEventListener('change',sync,options);
   window.addEventListener('resize',resize,options);
@@ -169,5 +162,4 @@ function initializeOrbit(canvas, button) {
 }
 
 const canvas = document.getElementById('orbitalBackground');
-const button = document.getElementById('toggleOrbit');
-if (canvas && button) initializeOrbit(canvas,button);
+if (canvas) initializeOrbit(canvas);
