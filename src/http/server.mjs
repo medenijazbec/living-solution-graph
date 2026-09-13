@@ -53,6 +53,7 @@ export function createHttpServer({service,protocol,config,log=console.error}){
 
     if(pathname==='/api/projects'&&req.method==='GET')return json(res,200,{projects:service.store.listProjects()});
     if(pathname==='/api/projects'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.createProject(b));}
+    if(pathname==='/api/project-snapshots/restore'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.restoreProjectSnapshot(b));}
     if(pathname==='/api/workspaces/resolve'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.resolveWorkspaceProject(b));}
     let m;
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/activity\/stream$/))&&req.method==='GET'){
@@ -80,6 +81,11 @@ export function createHttpServer({service,protocol,config,log=console.error}){
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases\/([^/]+)$/))&&req.method==='PATCH'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.updateSemanticEdgeCase({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases\/([^/]+)$/))&&req.method==='DELETE'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.deleteSemanticEdgeCase({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/implementation-plan-coverage$/))&&req.method==='GET')return json(res,200,service.getImplementationPlanCoverage({project_id:decodeURIComponent(m[1]),missing_only:url.searchParams.get('missing_only')==='true'}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/implementation-plans\/next-missing$/))&&req.method==='GET')return json(res,200,service.getNextMissingPlans({project_id:decodeURIComponent(m[1]),limit:Number(url.searchParams.get('limit')||10),cursor:url.searchParams.get('cursor')||undefined}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/implementation-plans\/batches$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.stagePlanBatch({...b,project_id:decodeURIComponent(m[1])}));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/implementation-plans\/batches\/([^/]+)$/))&&req.method==='GET')return json(res,200,service.getPlanBatch({project_id:decodeURIComponent(m[1]),batch_id:decodeURIComponent(m[2])}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/implementation-plans\/batches\/([^/]+)\/apply$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.applyPlanBatch({...b,project_id:decodeURIComponent(m[1]),batch_id:decodeURIComponent(m[2])}));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/snapshot\/export$/))&&req.method==='POST')return json(res,201,service.exportProjectSnapshot({project_id:decodeURIComponent(m[1])}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/resolve$/))&&req.method==='GET')return json(res,200,service.resolveSemanticFeatureReference({project_id:decodeURIComponent(m[1]),reference:url.searchParams.get('reference')||''}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/reindex$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.reindexSemanticFeatures({...b,project_id:decodeURIComponent(m[1])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/features\/([^/]+)$/))&&req.method==='PATCH'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.updateSemanticFeature({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}

@@ -7,6 +7,8 @@ import { newId, normalizeTitle, nowIso } from './db.mjs';
 import { SemanticLayer } from './semantic.mjs';
 import { Workspace } from './workspace.mjs';
 import { Activity } from './activity.mjs';
+import { PlanBatches } from './plan-batches.mjs';
+import { ProjectSnapshots } from './project-snapshots.mjs';
 
 function sha256(s){return createHash('sha256').update(s).digest('hex');}
 function normalizePlanText(s){return String(s).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trimEnd();}
@@ -24,6 +26,8 @@ export class LsgService {
     this.semantic=new SemanticLayer(store);
     this.workspace=new Workspace(this);
     this.activity=new Activity(this);
+    this.planBatches=new PlanBatches(this);
+    this.snapshots=new ProjectSnapshots(this);
     store.activity=this.activity;
   }
 
@@ -152,6 +156,12 @@ export class LsgService {
   appendNodeImplementationPlan(input){const current=this.getNodeImplementationPlan(input);const addition=String(input.markdown||'').trim();if(!addition)throw toolError('Markdown to append is required','INVALID_ARGUMENT');return this.setNodeImplementationPlan({...input,file_name:input.file_name||current.file_name,markdown:[current.markdown.trim(),addition].filter(Boolean).join('\n\n'),expected_document_version:input.expected_document_version??current.version});}
   deleteNodeImplementationPlan(input){const node=this.store.getNode(input.node_id);if(!node||node.project_id!==input.project_id||!['feature','edge_case'].includes(node.type))throw toolError('Node not found','NODE_NOT_FOUND');const current=this.store.getNodeDocument(node.id);if(!current)return {project_id:input.project_id,node_id:node.id,deleted:false};if(input.confirm_file_name!==current.file_name)throw toolError(`Confirm deletion with ${current.file_name}`,'CONFIRMATION_REQUIRED');const deleted=this.store.deleteNodeDocument(node.id,input.expected_document_version);if(node.implemented)this.store.updateNode(node.id,{verification_state:'stale',verified_at:null,last_invalidated_at:nowIso()});this.store.event({project_id:input.project_id,kind:'node.implementation_plan_deleted',actor:input.actor||'user',entity_id:node.id,data:{file_name:current.file_name}});this.activity.emit(input.project_id,[node.id],'plan_update',input.actor||'mcp');return {project_id:input.project_id,node_id:node.id,deleted:true,file_name:deleted.file_name};}
   getImplementationPlanCoverage(input){this.store.requireProject(input.project_id);const nodes=this.store.listNodes(input.project_id).filter(node=>node.status==='active'&&['feature','edge_case'].includes(node.type)&&(input.include_source||node.metadata?.layer==='semantic')&&!node.metadata?.semantic_root);const collator=new Intl.Collator('en',{numeric:true});const items=nodes.map(node=>{const plan=this.store.getNodeDocument(node.id),hasPlan=!!plan?.markdown?.trim();return {node_id:node.id,type:node.type,display_id:node.metadata?.display_id||null,title:node.title,has_plan:hasPlan,plan_status:hasPlan?'written':'missing',file_name:plan?.file_name||`${node.metadata?.display_id||node.id}-implementation-plan.md`,document_version:plan?.version||0};}).sort((a,b)=>collator.compare(a.display_id||a.title,b.display_id||b.title));return {project_id:input.project_id,total:items.length,with_plan:items.filter(item=>item.has_plan).length,missing_plan:items.filter(item=>!item.has_plan).length,features_with_plan:items.filter(item=>item.type==='feature'&&item.has_plan).length,features_missing_plan:items.filter(item=>item.type==='feature'&&!item.has_plan).length,edge_cases_with_plan:items.filter(item=>item.type==='edge_case'&&item.has_plan).length,edge_cases_missing_plan:items.filter(item=>item.type==='edge_case'&&!item.has_plan).length,items:input.missing_only?items.filter(item=>!item.has_plan):items};}
+  getNextMissingPlans(input){return this.planBatches.nextMissing(input);}
+  stagePlanBatch(input){return this.planBatches.stage(input);}
+  getPlanBatch(input){return this.planBatches.get(input);}
+  applyPlanBatch(input){return this.planBatches.apply(input);}
+  exportProjectSnapshot(input){return this.snapshots.export(input);}
+  restoreProjectSnapshot(input){return this.snapshots.restore(input);}
 
   auditImplementationStatus(input) {
     const p=this.store.requireProject(input.project_id); const all=this.store.listNodes(p.id,{types:input.types||['feature','edge_case','requirement','decision','test']});

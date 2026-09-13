@@ -12,6 +12,28 @@ export function placeCards(boxes,saved={}){
   return result;
 }
 
+const stableUnit=value=>{let hash=2166136261;for(const char of String(value)){hash^=char.charCodeAt(0);hash=Math.imul(hash,16777619);}return (hash>>>0)/4294967295;};
+export function ringRadius(radius,angle,band){const wave=Math.min(110,radius*.11);return radius+wave*(Math.sin(angle*3+band*.83)+.48*Math.sin(angle*7-band*.37))/1.48;}
+
+// Priority concentric rings. Features occupy each tier's inner orbit; their
+// edge cases and tests share the adjacent outer orbit. The radius grows with
+// measured card width, so dense rings remain collision-free before settling.
+export function placeRadialCards(boxes,saved={}){
+  const groups=new Map();for(const box of boxes){const band=Math.max(0,box.tier)*2+(box.detail?1:0);if(!groups.has(band))groups.set(band,[]);groups.get(band).push(box);}
+  const desired=[],rings=[];let previous=0;
+  for(const band of [...groups.keys()].sort((a,b)=>a-b)){
+    const group=groups.get(band).sort((a,b)=>String(a.number||a.id).localeCompare(String(b.number||b.id),'en',{numeric:true}));
+    const maxWidth=Math.max(...group.map(b=>b.width)),maxHeight=Math.max(...group.map(b=>b.height));
+    const tracks=Math.ceil(group.length/10);
+    for(let track=0;track<tracks;track++){
+      const members=group.slice(track*10,(track+1)*10),density=members.length<=1?0:members.length*(maxWidth+65)/(2*Math.PI),radius=band===0&&group.length===1?0:Math.max(previous+maxHeight+145,density,300);
+      rings.push({band,radius,tier:Math.floor(band/2),detail:band%2===1,track});previous=radius;
+      for(let index=0;index<members.length;index++){const box=members[index],step=2*Math.PI/members.length,angle=-Math.PI/2+step*(index+.5+track*.29+(stableUnit(box.id+'angle')-.5)*.45),jitter=(stableUnit(box.id+'radius')-.5)*Math.min(165,maxWidth*.55),distance=ringRadius(radius,angle,band+track*.4)+jitter;desired.push({...box,x:Math.cos(angle)*distance-box.width/2,y:Math.sin(angle)*distance-box.height/2});}
+    }
+  }
+  return {boxes:placeCards(desired,saved),rings};
+}
+
 // Orthogonal visibility graph: candidate lanes follow inflated rectangle edges.
 // Every emitted segment is checked against card interiors.
 export function routeConnection(source,target,boxes){
