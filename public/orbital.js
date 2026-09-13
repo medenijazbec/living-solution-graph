@@ -25,15 +25,14 @@ void main() {
     color += vec3(.38,.72,1.0)*exp(-distanceToLimb*360.0);
   } else {
     vec3 normal = vec3(q/radius, sqrt(max(0.0,1.0-dot(q,q)/(radius*radius))));
-    // First pitch the globe once so the tropical/equatorial band sits at the
-    // horizon. Then rotate around its polar axis: terrain travels through
-    // depth, toward the viewer and away again, without a vertical polar roll.
-    float pitch = 1.18;
-    vec3 base = vec3(normal.x, normal.y*cos(pitch)-normal.z*sin(pitch),
-                    normal.y*sin(pitch)+normal.z*cos(pitch));
-    float yaw = forwardMotion + .28;
-    vec3 mapped = vec3(base.x*cos(yaw)+base.z*sin(yaw), base.y,
-                      base.z*cos(yaw)-base.x*sin(yaw));
+    // The texture's polar axis is aligned with screen X, so the center track
+    // is the equator. Rotating around that axis carries equatorial terrain
+    // down the visible surface toward the viewer instead of sliding sideways.
+    float spin = .28 - forwardMotion;
+    vec3 turned = vec3(normal.x,
+      normal.y*cos(spin)-normal.z*sin(spin),
+      normal.y*sin(spin)+normal.z*cos(spin));
+    vec3 mapped = vec3(turned.y,turned.x,turned.z);
     float longitude = atan(mapped.z,mapped.x) / (2.0*PI) + .025;
     vec2 uv = vec2(fract(longitude), asin(clamp(mapped.y,-1.0,1.0))/PI+.5);
     // NASA's rectangular mosaic includes a black no-data strip above the north pole.
@@ -54,7 +53,7 @@ void main() {
 `;
 
 function initializeOrbit(canvas) {
-  canvas.dataset.spinAxis = 'equatorial-depth';
+  canvas.dataset.spinAxis = 'equatorial-forward';
   const listeners = new AbortController();
   const media = matchMedia('(prefers-reduced-motion: reduce)');
   let gl, program, buffer, texture;

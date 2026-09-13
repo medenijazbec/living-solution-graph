@@ -24,9 +24,9 @@ export function placeRadialCards(boxes,saved={}){
   for(const band of [...groups.keys()].sort((a,b)=>a-b)){
     const group=groups.get(band).sort((a,b)=>String(a.number||a.id).localeCompare(String(b.number||b.id),'en',{numeric:true}));
     const maxWidth=Math.max(...group.map(b=>b.width)),maxHeight=Math.max(...group.map(b=>b.height));
-    const tracks=Math.ceil(group.length/10);
+    const tracks=Math.ceil(group.length/16);
     for(let track=0;track<tracks;track++){
-      const members=group.slice(track*10,(track+1)*10),density=members.length<=1?0:members.length*(maxWidth+65)/(2*Math.PI),radius=band===0&&group.length===1?0:Math.max(previous+maxHeight+145,density,300);
+      const members=group.slice(track*16,(track+1)*16),density=members.length<=1?0:members.length*(maxWidth+44)/(2*Math.PI),radius=band===0&&group.length===1?0:Math.max(previous+maxHeight+88,density,250);
       rings.push({band,radius,tier:Math.floor(band/2),detail:band%2===1,track});previous=radius;
       for(let index=0;index<members.length;index++){const box=members[index],step=2*Math.PI/members.length,angle=-Math.PI/2+step*(index+.5+track*.29+(stableUnit(box.id+'angle')-.5)*.45),jitter=(stableUnit(box.id+'radius')-.5)*Math.min(165,maxWidth*.55),distance=ringRadius(radius,angle,band+track*.4)+jitter;desired.push({...box,x:Math.cos(angle)*distance-box.width/2,y:Math.sin(angle)*distance-box.height/2});}
     }
