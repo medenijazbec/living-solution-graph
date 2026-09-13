@@ -64,6 +64,8 @@ use lsg to graph out features and edge cases of the master plan at C:\Projects\M
 
 `use lsg`, `@lsg`, and `run lsg` are Codex invocation conventions for the registered `living_solution_graph` server. They mean that Codex should use LSG rather than merely discuss it.
 
+The server tells connected Codex clients that these phrases require real MCP tool calls. Codex should first resolve the workspace, then call the compact `solution.run_program` tool. Its `overview`, `feature`, `next_work`, `missing_plans`, and `search` programs return at most 10 concise records, which keeps large graph payloads out of the working context. Full graph, evidence, history, and mutation tools remain available when a specific operation needs them.
+
 For an explicitly review-only staged proposal, persist it with:
 
 ```text

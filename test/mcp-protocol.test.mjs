@@ -13,7 +13,7 @@ test('modern 2026 MCP discover/list/call/read resource',async()=>{const r=rt();t
   x=await r.protocol.handle(modern(4,'resources/read',{uri:'solution://server/version'}),{era:'modern'});assert.equal(x.result.contents[0].mimeType,'application/json');
 }finally{r.close();}});
 
-test('semantic prompt instructs workspace resolution, automatic commit, and count reporting',async()=>{const r=rt();try{const x=await r.protocol.handle(modern(10,'prompts/get',{name:'provide_semantic_feature_list',arguments:{project_id:'project'}}),{era:'modern'});const text=x.result.messages[0].content.text;assert.match(text,/resolve_workspace_project/);assert.match(text,/automatically commits/);assert.match(text,/recursive edge-case count/);}finally{r.close();}});
+test('semantic prompt instructs tool use, compact navigation, workspace resolution, and automatic commit',async()=>{const r=rt();try{const x=await r.protocol.handle(modern(10,'prompts/get',{name:'provide_semantic_feature_list',arguments:{project_id:'project'}}),{era:'modern'});const text=x.result.messages[0].content.text;assert.match(text,/callable MCP tools/);assert.match(text,/solution\.run_program/);assert.match(text,/resolve_workspace_project/);assert.match(text,/automatically commits/);assert.match(text,/recursive edge-case counts/);}finally{r.close();}});
 
 test('modern MCP rejects missing protocol/capability metadata',async()=>{const r=rt();try{const x=await r.protocol.handle({jsonrpc:'2.0',id:1,method:'tools/list',params:{}},{era:'modern'});assert.equal(x.error.code,-32602);}finally{r.close();}});
 

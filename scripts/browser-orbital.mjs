@@ -43,6 +43,7 @@ try{
   assert.ok((await page.locator('#leftPanel').boundingBox()).width<=1,'Collapsed sidebar leaves padding over graph');
   await page.locator('#collapseLeft').click();
   await page.waitForSelector('#orbitalBackground[data-state="running"]',{timeout:5000});
+  assert.equal(await page.locator('#orbitalBackground').getAttribute('data-spin-axis'),'equatorial-depth');
   // Isolate the decorative pixels; application panels otherwise cover the canvas screenshot.
   await page.addStyleTag({content:'body>header,body>main{visibility:hidden!important}'});
   const canvas=page.locator('#orbitalBackground');
@@ -62,8 +63,8 @@ try{
     const candidates=Array.from({length:81},(_,i)=>i-40),vertical=candidates.map(d=>({shift:d,error:score(0,d)})).sort((a,b)=>a.error-b.error)[0],horizontal=candidates.map(d=>({shift:d,error:score(d,0)})).sort((a,b)=>a.error-b.error)[0];
     return {vertical,horizontal};
   });
-  assert.ok(motion.vertical.shift< -5,`Earth surface does not approach viewer: ${JSON.stringify(motion)}`);
-  assert.ok(motion.vertical.error<motion.horizontal.error,`Sideways motion dominates: ${JSON.stringify(motion)}`);
+  assert.ok(Math.abs(motion.vertical.shift)<=5,`Earth surface still rolls vertically over a pole: ${JSON.stringify(motion)}`);
+  assert.ok(Math.abs(motion.horizontal.shift)>Math.abs(motion.vertical.shift),`Equatorial depth rotation is not dominant: ${JSON.stringify(motion)}`);
   await page.emulateMedia({reducedMotion:'reduce'});await page.waitForSelector('#orbitalBackground[data-state="paused"]');
   const reduced=await canvas.screenshot();await page.waitForTimeout(250);
   assert.deepEqual(await canvas.screenshot(),reduced,'Reduced-motion background moves');
@@ -77,6 +78,6 @@ try{
   const limited=await browser.newPage();await limited.addInitScript(()=>{const parameter=WebGLRenderingContext.prototype.getParameter,upload=WebGLRenderingContext.prototype.texImage2D;WebGLRenderingContext.prototype.getParameter=function(name){return name===this.MAX_TEXTURE_SIZE?1024:parameter.call(this,name);};WebGLRenderingContext.prototype.texImage2D=function(...args){const image=args[5];if(image?.width>1024)return upload.call(this,this.TEXTURE_2D,0,this.RGB,-1,-1,0,this.RGB,this.UNSIGNED_BYTE,null);return upload.apply(this,args);};});await limited.goto(base);await limited.waitForSelector('#orbitalBackground[data-state="running"]');await limited.close();
   await page.locator('#orbitalBackground').evaluate(el=>el.getContext('webgl').getExtension('WEBGL_lose_context').loseContext());await page.waitForSelector('#orbitalBackground[data-state="fallback"]');
   assert.deepEqual(external,[],'Unexpected external runtime requests');
-  console.log(JSON.stringify({ok:true,tested:['slow forward rotation','star-free sky','blurred backdrop','8K Earth/cloud detail','no pause button','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
+  console.log(JSON.stringify({ok:true,tested:['slow equatorial depth rotation','no vertical polar roll','star-free sky','blurred backdrop','8K Earth/cloud detail','no pause button','reduced motion','texture MIME and budget','texture failure fallback','upload failure','GPU downsample','context loss','sidebar collapse','narrow viewport','no external requests'],screenshots:dir}));
   assert.deepEqual(errors,[]);
 }finally{await browser.close();await server.close();store.close();}

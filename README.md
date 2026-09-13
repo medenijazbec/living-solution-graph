@@ -158,6 +158,8 @@ Implementation and verification are deliberately separate. Reverting `implemente
 
 `solution.bootstrap_from_markdown_plan`, `solution.preview_markdown_plan`, `solution.commit_plan_import`, `solution.prepare_semantic_feature_set`, `solution.stage_semantic_feature_set`, `solution.commit_semantic_feature_set`, `solution.get_semantic_feature_list`, `solution.get_semantic_edge_cases`, `solution.update_semantic_edge_case`, `solution.delete_semantic_edge_case`, `solution.get_semantic_diff`, `solution.get_implementation_plan_coverage`, `solution.set_node_implementation_plan`, `solution.append_node_implementation_plan`, `solution.delete_node_implementation_plan`, `solution.delete_project`, `solution.audit_implementation_status`, `solution.add_edge_case`, `solution.set_implementation_state`, `solution.set_verification_state`, `solution.record_evidence`, `solution.get_graph_view`, `solution.find_gaps`, `solution.get_frontier`, `solution.get_context`, starter-pack tools, and `memory.*` history tools.
 
+For routine agent navigation, prefer `solution.run_program`. It is a compact MCP program runner with `overview`, `feature`, `next_work`, `missing_plans`, and `search` modes. Results default to five items and are capped at ten, returning stable IDs and state rather than entire graph records. Use the focused full-detail tools only when the next action actually needs their evidence or mutation fields. This avoids duplicating a large project graph in Codex context.
+
 The MCP server also exposes graph/audit/user-context resources and reusable prompts for bootstrap, continuation, implementation, audit, and domain coverage.
 
 ## OpenAI-compatible model facade
