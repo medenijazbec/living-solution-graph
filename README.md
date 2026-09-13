@@ -20,7 +20,7 @@
 <p align="center">
   <a href="https://github.com/medenijazbec/living-solution-graph/releases"><img alt="release" src="https://img.shields.io/github/v/release/medenijazbec/living-solution-graph?style=flat-square&color=2f81f7"></a>
   <a href="https://github.com/medenijazbec/living-solution-graph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/medenijazbec/living-solution-graph/ci.yml?branch=master&style=flat-square&label=build"></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-54%20passing-2ea043?style=flat-square">
+  <img alt="tests" src="https://img.shields.io/badge/tests-58%20passing-2ea043?style=flat-square">
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="MCP" src="https://img.shields.io/badge/MCP-stdio%20%7C%20HTTP-7c3aed?style=flat-square">
   <img alt="runtime dependencies" src="https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9?style=flat-square">

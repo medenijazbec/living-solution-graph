@@ -1,10 +1,10 @@
-# LSG 6.1.0 release verification
+# LSG 6.2.0 release verification
 
 ## MCP tool and repository quality pass — 2026-09-13
 
 - All 76 registered MCP tools passed registry uniqueness, description, strict-schema, and protocol dispatch checks.
 - Shared validation rejects unknown arguments, values outside declared bounds, non-finite numbers, malformed nested objects, and invalid array members.
-- Functional suite: 54/54 tests passed.
+- Functional suite: 58/58 tests passed.
 - Smoke, package verification, and isolated doctor checks passed.
 - Dense Chromium workspace suite passed with 80 cards, 55 connections, drag tracking, zoom/pan, activity, editors, deletion workflows, selected-node backglow, and breathing connections.
 - Chromium orbital suite passed texture, motion, failure fallback, GPU downsampling, context-loss, layout, and request-isolation checks.

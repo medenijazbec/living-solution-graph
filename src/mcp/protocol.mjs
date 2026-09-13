@@ -3,7 +3,7 @@ import { buildRegistry, publicTools, validateArgs } from './registry.mjs';
 export const MODERN_PROTOCOL='2026-07-28';
 export const LEGACY_PROTOCOL='2025-11-25';
 export const LEGACY_PROTOCOLS=['2025-11-25','2025-06-18','2025-03-26','2024-11-05','2024-10-07'];
-export const SERVER_INFO={name:'living-solution-graph',version:'6.1.0'};
+export const SERVER_INFO={name:'living-solution-graph',version:'6.2.0'};
 const SERVER_META_KEY='io.modelcontextprotocol/serverInfo';
 const PROTOCOL_META_KEY='io.modelcontextprotocol/protocolVersion';
 const CAPS_META_KEY='io.modelcontextprotocol/clientCapabilities';
@@ -72,10 +72,10 @@ export class McpProtocol {
   async callTool(id,params,modern){
     const t=this.tools.get(params.name);
     if(!t) return resultEnvelope(id,{content:[{type:'text',text:`Unknown tool: ${params.name}`}],isError:true},modern);
-    const validation=validateArgs(t.inputSchema,params.arguments||{});
+    const validation=validateArgs(t.inputSchema,params.arguments??{});
     if(validation) return resultEnvelope(id,{content:[{type:'text',text:`Input validation error: ${validation}`}],isError:true},modern);
     try{
-      const args=params.arguments||{};const out=await t.handler(args);const target=args.node_id||out?.feature?.id||out?.node?.id;if(target&&args.project_id)this.service.activity.emit(args.project_id,[target],params.name.includes('get_')?'read':'update',args.actor||'mcp'); const structured=toStructured(out);
+      const args=params.arguments??{};const out=await t.handler(args);const target=args.node_id||out?.feature?.id||out?.node?.id;if(target&&args.project_id)this.service.activity.emit(args.project_id,[target],params.name.includes('get_')?'read':'update',args.actor||'mcp'); const structured=toStructured(out);
       return resultEnvelope(id,{content:[{type:'text',text:JSON.stringify(out,null,params.name==='solution.run_program'?0:2)}],structuredContent:structured},modern);
     }catch(e){
       const detail={error:e?.message||String(e),code:e?.code||'LSG_ERROR',...(e?.current_graph_version!=null?{current_graph_version:e.current_graph_version}:{}),...(e?.current_node_version!=null?{current_node_version:e.current_node_version}:{})};

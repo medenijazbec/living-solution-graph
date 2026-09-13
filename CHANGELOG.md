@@ -1,6 +1,6 @@
 # Changelog
 
-## Tool safety and repository documentation — 2026-09-13
+## 6.2.0 — 2026-09-13
 
 - Added a compact, searchable, paginated MCP tool catalog.
 - Added a read-only project-integrity audit for semantic identity collisions, orphan records, unsafe file mappings, dependency cycles, incomplete edge-case definitions, and stale semantic runs.

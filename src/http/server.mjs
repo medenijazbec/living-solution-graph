@@ -33,7 +33,7 @@ export function createHttpServer({service,protocol,config,log=console.error}){
   async function route(req,res){
     counters.requests++;addSecurity(res);cors(req,res); if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}
     const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`); const pathname=url.pathname;
-    if(pathname==='/healthz')return json(res,200,{ok:true,version:'6.1.0',uptime_seconds:Math.floor((Date.now()-counters.started)/1000)});
+    if(pathname==='/healthz')return json(res,200,{ok:true,version:'6.2.0',uptime_seconds:Math.floor((Date.now()-counters.started)/1000)});
     if(pathname==='/readyz')return json(res,200,{ok:true,database:true});
     if(pathname==='/metrics')return text(res,200,`# TYPE lsg_http_requests_total counter\nlsg_http_requests_total ${counters.requests}\n# TYPE lsg_mcp_requests_total counter\nlsg_mcp_requests_total ${counters.mcp}\n# TYPE lsg_http_errors_total counter\nlsg_http_errors_total ${counters.errors}\n`,'text/plain; version=0.0.4');
 

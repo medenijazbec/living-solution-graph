@@ -1,8 +1,8 @@
 {
   "name": "Living Solution Graph MCP",
-  "version": "6.1.0",
-  "release_date": "2026-09-12",
-  "release_time": "2026-09-12T17:02:00+02:00",
+  "version": "6.2.0",
+  "release_date": "2026-09-13",
+  "release_time": "2026-09-13T12:00:00+02:00",
   "schema_version": 9,
   "mcp": {
     "modern_protocol": "2026-07-28",
