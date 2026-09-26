@@ -25,6 +25,14 @@ npm start
 
 The UI is available at `http://127.0.0.1:7347`. Keep that terminal open while using the HTTP server.
 
+After the npm package is published, install the standalone command instead of cloning the repository:
+
+```powershell
+npm install --global living-solution-graph-mcp
+lsg-mcp doctor
+lsg-mcp http
+```
+
 By default, a new Windows installation stores data under `%LOCALAPPDATA%\LivingSolutionGraph`. Set `LSG_DB_PATH` when you want an explicit database location:
 
 ```powershell
@@ -82,7 +90,7 @@ Use absolute paths in the client's MCP configuration:
 }
 ```
 
-`LSG_WORKSPACE_ROOT` is a security boundary. LSG will not read plans or mapped files outside it.
+`LSG_WORKSPACE_ROOT` confines ordinary MCP file reads and mapped-file access. The plan kickoff tool reads only the exact Markdown path explicitly passed to it and enforces a 2 MiB limit; it does not crawl parent folders or neighboring files.
 
 ## VS Code
 

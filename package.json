@@ -1,6 +1,6 @@
 {
   "name": "living-solution-graph-mcp",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "description": "Production MCP server and Living Solution Graph runtime for evolving plans into verified implementation graphs.",
   "type": "module",
   "private": false,
@@ -46,6 +46,7 @@
     "docs/",
     ".github/assets/lsg.png",
     "README.md",
+    "AGENTS.md",
     "HOW_TO_USE_LSG.md",
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",

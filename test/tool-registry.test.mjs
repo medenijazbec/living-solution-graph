@@ -12,7 +12,7 @@ function runtime(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-tool-audi
 
 test('every registered MCP tool has a strict valid contract and reaches dispatch',async()=>{const r=runtime();try{
   const registry=buildRegistry(r.service),names=registry.map(tool=>tool.name),protocol=new McpProtocol(r.service);
-  assert.equal(names.length,76);assert.equal(new Set(names).size,names.length);
+  assert.equal(names.length,78);assert.equal(new Set(names).size,names.length);
   const validValue=rule=>{if(rule.enum)return rule.enum[0];if(rule.type==='string')return 'x';if(rule.type==='boolean')return false;if(rule.type==='integer'||rule.type==='number')return rule.minimum??1;if(rule.type==='array')return Array.from({length:rule.minItems??0},()=>validValue(rule.items||{}));if(rule.type==='object'){const value={};for(const key of rule.required||[])value[key]=validValue(rule.properties?.[key]||{});return value;}return null;};
   for(const tool of registry){
     assert.match(tool.name,/^(solution|memory)\.[a-z0-9_]+$/);assert.ok(tool.description.length>=20,tool.name);assert.equal(tool.inputSchema.type,'object',tool.name);assert.equal(tool.inputSchema.additionalProperties,false,tool.name);assert.equal(typeof tool.handler,'function',tool.name);

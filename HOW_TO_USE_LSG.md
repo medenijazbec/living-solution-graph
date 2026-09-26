@@ -54,11 +54,11 @@ Restart or reconnect your Codex session after changing MCP configuration. For VS
 
 ## Normal workflow
 
-1. Give Codex a concrete Markdown-plan path.
-2. Codex imports or updates the lexical source graph.
-3. Codex prepares a semantic run, reasons over the source evidence, validates the proposal, and commits it automatically.
+1. Give Codex a concrete path to an existing Markdown plan.
+2. Codex's first LSG call is `solution.start_plan_graph_workflow`: it creates or reuses a project keyed to that exact file, imports/commits its lexical source graph, and prepares the evidence brief.
+3. Codex authors and validates source-linked semantic features and edge cases, then publishes the valid set automatically.
 4. Codex reports the feature, subfeature, and edge-case totals plus each feature's recursive edge-case count (for example `F1 → 34 EC`).
-5. Request `auto_commit=false` only when you want a review-only staged proposal and diff.
+5. Say “review only” when you want a staged proposal and diff without publishing it yet.
 
 Use a prompt like:
 
@@ -70,15 +70,17 @@ use lsg to graph out features and edge cases of the master plan at C:\Projects\M
 
 For focused graph context, ask Codex to select a feature such as `F14.1`. It can call `solution.select_node_neighborhood` for that node and every direct connection. Ask for one cascading level to use `solution.select_node_cascade` with `cascade_depth=1`; that adds the direct neighbors' neighbors without dumping the whole graph.
 
-The server tells connected Codex clients that these phrases require real MCP tool calls. Codex should first resolve the workspace, then call the compact `solution.run_program` tool. Its `overview`, `feature`, `next_work`, `missing_plans`, and `search` programs return at most 10 concise records, which keeps large graph payloads out of the working context. Full graph, evidence, history, and mutation tools remain available when a specific operation needs them.
+The server instructs connected Codex clients that these phrases require real MCP calls. For a master plan, Codex must call `solution.start_plan_graph_workflow` before resolving a workspace, creating another project, or authoring plans. This file-keyed workflow keeps multiple plans in one repository separate. Missing or ambiguous plan paths require a question, not a guess. For later navigation, the compact `solution.run_program` tool returns at most 10 concise records and keeps large graphs out of model context.
 
-For an explicitly review-only staged proposal, persist it with:
+Only after you explicitly request review-only, approve a staged proposal with:
 
 ```text
 Commit MyGame semantic set
 ```
 
-Replace `MyGame` with the project being reviewed. Normal `solution.stage_semantic_feature_set` calls commit automatically; this command remains available for a staged run created with `auto_commit=false`.
+Replace `MyGame` with the project being reviewed. Normal `solution.stage_semantic_feature_set` calls publish automatically. This approval command is only for a proposal deliberately staged with `auto_commit=false`.
+
+To see which nodes still need Markdown implementation plans, page through `solution.get_missing_plans_by_status` using `not_implemented`, `partially_implemented`, or `implemented` (awaiting verification and fully complete). Graphing a plan reports this coverage but only authors per-node Markdown files when you request that additional work.
 
 ## Semantic features, child features, and edge cases
 
@@ -134,16 +136,16 @@ When implementation exposes a new failure mode, add it to the semantic feature b
 
 ## Plan updates
 
-When the master plan changes, ask Codex to import the changed file again. LSG preserves source hashes and marks affected semantic runs stale. Codex should prepare and stage a fresh semantic proposal, retaining unchanged IDs/evidence where possible, before you commit the replacement.
+When the master plan changes, ask Codex to graph the same filepath again. LSG preserves source hashes and marks affected semantic runs stale. Codex prepares a fresh proposal and publishes it automatically by default, retaining unchanged IDs/evidence where possible. Say “review only” when you want to inspect the replacement diff before it becomes live.
 
 ## Useful MCP tools
 
 | Purpose | Tool |
 | --- | --- |
-| Import/update plan | `solution.preview_markdown_plan`, `solution.commit_plan_import` |
+| Start graphing a master plan | `solution.start_plan_graph_workflow` |
 | Create review brief | `solution.prepare_semantic_feature_set` |
 | Validate, stage, and auto-commit semantic proposal | `solution.stage_semantic_feature_set` |
-| Review-only/manual commit (optional) | `solution.commit_semantic_feature_set` |
+| Review-only approval (optional) | `solution.commit_semantic_feature_set` |
 | Read backlog/edge cases | `solution.get_semantic_feature_list`, `solution.get_semantic_edge_cases` |
 | Resolve `F1`/`1` | `solution.resolve_semantic_feature_reference` |
 | Number legacy semantic data | `solution.reindex_semantic_features` |
@@ -151,6 +153,7 @@ When the master plan changes, ask Codex to import the changed file again. LSG pr
 | Edit a numbered feature | `solution.update_semantic_feature` |
 | Attach/read a feature or edge-case Markdown plan | `solution.set_node_implementation_plan`, `solution.get_node_implementation_plan` |
 | Next implementation work | `solution.get_frontier` |
+| Missing plans by progress | `solution.get_missing_plans_by_status` |
 | Record implementation truth | `solution.record_evidence`, `solution.set_implementation_state`, `solution.set_verification_state` |
 
 ## Before every release

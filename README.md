@@ -20,7 +20,7 @@
 <p align="center">
   <a href="https://github.com/medenijazbec/living-solution-graph/releases"><img alt="release" src="https://img.shields.io/github/v/release/medenijazbec/living-solution-graph?style=flat-square&color=2f81f7&cacheSeconds=60"></a>
   <a href="https://github.com/medenijazbec/living-solution-graph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/medenijazbec/living-solution-graph/ci.yml?branch=master&style=flat-square&label=build&cacheSeconds=60"></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-58%20passing-2ea043?style=flat-square">
+  <img alt="tests" src="https://img.shields.io/badge/tests-65%20passing-2ea043?style=flat-square">
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="MCP" src="https://img.shields.io/badge/MCP-stdio%20%7C%20HTTP-7c3aed?style=flat-square">
   <img alt="runtime dependencies" src="https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9?style=flat-square">
@@ -57,6 +57,14 @@ npm start
 ```
 
 Open [http://127.0.0.1:7347](http://127.0.0.1:7347). On a new Windows installation, durable local data defaults to `%LOCALAPPDATA%\LivingSolutionGraph` unless `LSG_DB_PATH` is configured.
+
+After the npm release is available, install the standalone command instead of cloning the repository:
+
+```powershell
+npm install --global living-solution-graph-mcp
+lsg-mcp doctor
+lsg-mcp http
+```
 
 For macOS/Linux, Docker, remote HTTP, upgrades, and data paths, see the [installation guide](docs/INSTALL.md).
 
@@ -100,9 +108,13 @@ dependency-ready implementation frontier
 implementation plan → code → tests → evidence → verification
 ```
 
-The agent resolves the project from the plan's directory, updates the source graph, authors a semantic feature set, and stores the result. Later prompts can address nodes by number without rereading the entire plan.
+The first graphing request must include the path to an existing Markdown plan. Codex starts with `solution.start_plan_graph_workflow`, which creates or reuses a project keyed to that exact file, imports and commits its lexical source graph, and prepares bounded evidence for semantic authoring. Different plan files remain separate projects, including plans in one folder or Git repository. With no path—or an ambiguous workspace-only lookup—Codex asks which plan to use.
 
-Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **76 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
+Codex then authors evidence-linked semantic features and edge cases. A valid proposal is published automatically by default, and Codex confirms the live semantic feature list and frontier before reporting completion. Only an explicit “review only” request leaves it staged. Ask for missing Markdown plans by status using `solution.get_missing_plans_by_status` or the compact `missing_plans` program. See the [FAQ](docs/FAQ.md) for the exact workflow and common questions.
+
+The 6.3.0 browser regression screenshots show the [implemented-feature state](docs/screenshots/v6.3.0/implemented-feature.png) and [partial-progress state](docs/screenshots/v6.3.0/partial-progress.png).
+
+Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **78 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
 
 ## Safe state changes
 
@@ -145,6 +157,7 @@ The registry contract suite dispatches every MCP tool, checks unique names and s
 | [Install](docs/INSTALL.md) | Local, Codex, VS Code, stdio, HTTP, Docker, upgrade, and uninstall instructions |
 | [How to use LSG](HOW_TO_USE_LSG.md) | Plain-language day-to-day workflows and prompts |
 | [MCP tool catalog](docs/TOOLS.md) | All tools grouped by job |
+| [FAQ](docs/FAQ.md) | Plan projects, automatic semantic publication, missing plans, and npm install |
 | [Workspace 6.1](docs/WORKSPACE_6_1.md) | Progress, memory, work claims, live activity, and canvas behavior |
 | [Architecture](docs/living_solution_graph_v6_architecture.md) | Runtime and storage design |
 | [Production](docs/PRODUCTION.md) | Secure single-writer deployment |

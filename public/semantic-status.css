@@ -1,0 +1,30 @@
+.cards .node.implemented-feature {
+  background: #071a3c;
+  border-color: #76f5a8;
+  box-shadow: 0 0 0 1px #76f5a866, 0 0 17px #32e77755, 0 8px 22px #0009;
+}
+
+.cards .node.implemented-feature:hover,
+.cards .node.implemented-feature.selected {
+  background: #09224c;
+  border-color: #baffce;
+  box-shadow: 0 0 0 2px #79f5a777, 0 0 27px #32e77799, 0 12px 30px #000b;
+}
+
+.cards .node.implemented-feature.selected {
+  animation: implementedSignal 1.7s ease-in-out infinite;
+}
+
+.badge.partial {
+  color: #ffd08b;
+  background: #56370f;
+  border-color: #ffbd636b;
+}
+
+@keyframes implementedSignal {
+  50% { box-shadow: 0 0 0 2px #baffceaa, 0 0 36px #32e777b8, 0 12px 30px #000b; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cards .node.implemented-feature.selected { animation: none; }
+}

@@ -1,6 +1,6 @@
 # MCP tool catalog
 
-LSG exposes 76 tools. Prefer `solution.run_program` and `solution.get_tool_catalog` for compact model context; call detailed tools only for the current task.
+LSG exposes 78 tools. Prefer `solution.run_program` and `solution.get_tool_catalog` for compact model context; call detailed tools only for the current task.
 
 ## Tool discovery and integrity
 
@@ -17,6 +17,10 @@ LSG exposes 76 tools. Prefer `solution.run_program` and `solution.get_tool_catal
 - `solution.get_graph_view` — Return connected graph data for rendering.
 - `solution.get_frontier` — Return dependency-ready work.
 - `solution.find_gaps` — Return incomplete, stale, and awaiting-verification gaps.
+
+## Plan graph kickoff
+
+- `solution.start_plan_graph_workflow` — Create/reuse a project keyed to one canonical Markdown plan, commit its lexical source graph, and prepare a compact semantic evidence brief. This is the required first call when graphing a master plan.
 
 ## Counts and progress
 
@@ -48,6 +52,7 @@ LSG exposes 76 tools. Prefer `solution.run_program` and `solution.get_tool_catal
 - `solution.delete_node_implementation_plan` — Delete a plan after filename confirmation.
 - `solution.get_implementation_plan_coverage` — Count and list nodes with or without plans.
 - `solution.get_next_missing_plans` — Page through nodes that need plans.
+- `solution.get_missing_plans_by_status` — Page through missing plans filtered by `not_implemented`, `partially_implemented`, or `implemented` (awaiting verification plus fully complete).
 - `solution.stage_plan_batch` — Stage 1–25 plans for review.
 - `solution.get_plan_batch` — Read a staged/applied plan batch and diff.
 - `solution.apply_plan_batch` — Apply a reviewed batch atomically.

@@ -41,6 +41,9 @@ export class LsgService {
     const rootKey=canonicalWorkspace(root);
     const requestedProject=input.project_id?this.store.getProject(input.project_id):null;
     if(requestedProject){const project=this.store.updateProjectMetadata(requestedProject.id,{workspace_root:root,workspace_key:rootKey,repository_root:requestedProject.metadata?.repository_root||root});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
+    const planProjects=projects.filter(project=>project.metadata?.master_plan_key&&canonicalWorkspace(project.metadata.workspace_root||project.metadata.repository_root||'')===rootKey);
+    if(planProjects.length>1)throw toolError(`Multiple master-plan projects are bound to this workspace (${planProjects.map(project=>project.title).join(', ')}). Supply a plan file path or project_id.`,'AMBIGUOUS_PROJECT',{project_ids:planProjects.map(project=>project.id)});
+    if(planProjects.length===1){const project=planProjects[0];return {project,workspace_root:root,workspace_key:rootKey,created:false};}
     const matchingUnboundProject=projects.find(project=>project.id===workspaceBaseId(root)&&!project.metadata?.workspace_root&&!project.metadata?.repository_root);
     if(matchingUnboundProject){const project=this.store.updateProjectMetadata(matchingUnboundProject.id,{workspace_root:root,workspace_key:rootKey,repository_root:root});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
     const bound=projects.map(project=>({project,root:project.metadata?.workspace_root||project.metadata?.repository_root})).filter(x=>x.root).map(x=>({...x,canonical:canonicalWorkspace(x.root)})).filter(x=>isWithin(key,x.canonical)).sort((a,b)=>b.canonical.length-a.canonical.length)[0];
@@ -49,6 +52,40 @@ export class LsgService {
     if(exact){const project=this.store.updateProjectMetadata(exact.id,{workspace_root:root,workspace_key:rootKey});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
     const id=input.project_id||workspaceSlug(root);const project=this.store.getProject(id)||this.store.createProject({id,title:input.project_title||path.basename(root)||id,description:input.description||'',metadata:{workspace_root:root,workspace_key:rootKey,repository_root:root,auto_created_from_workspace:true}});
     return {project,workspace_root:root,workspace_key:rootKey,created:true};
+  }
+
+  startPlanGraphWorkflow(input={}) {
+    if(!input.plan_file_path)throw toolError('plan_file_path is required. Ask which existing Markdown master plan to graph.','PLAN_PATH_REQUIRED');
+    const supplied=path.resolve(this.workspaceRoot,String(input.plan_file_path));
+    if(path.extname(supplied).toLowerCase()!=='.md'||!fs.existsSync(supplied)||!fs.statSync(supplied).isFile())throw toolError('plan_file_path must identify an existing Markdown file','INVALID_ARGUMENT');
+    if(fs.statSync(supplied).size>2*1024*1024)throw toolError('Plan file exceeds 2 MiB import limit','FILE_TOO_LARGE');
+    const planPath=fs.realpathSync(supplied),planKey=canonicalWorkspace(planPath),markdown=fs.readFileSync(planPath,'utf8');
+    let project=this.store.listProjects().find(candidate=>candidate.metadata?.master_plan_key===planKey)||null;
+    const projectId=project?.id||`plan-${sha256(planKey).slice(0,20)}`;
+    if(!project){const collision=this.store.getProject(projectId);if(collision)throw toolError('Deterministic plan project ID is already used by a non-matching project','PROJECT_ID_COLLISION');project=this.store.createProject({id:projectId,title:input.project_title||path.basename(planPath,path.extname(planPath)),description:`Semantic implementation graph for ${path.basename(planPath)}`,metadata:{master_plan_path:planPath,master_plan_key:planKey,auto_created_from_plan:true}});}
+    else this.store.updateProjectMetadata(project.id,{master_plan_path:planPath,master_plan_key:planKey});
+    let workspace;
+    try{workspace=this.resolveWorkspaceProject({working_directory:path.dirname(planPath),project_id:project.id});}
+    catch(error){return {status:'incomplete',project_id:project.id,project:this.store.getProject(project.id),failure:{code:error.code||'WORKSPACE_RESOLUTION_FAILED',message:error.message},resumable:true};}
+    project=workspace.project;
+    let sourceImport=null;
+    try{
+      const hash=sha256(markdown);
+      const latest=this.store.listImportSessions(project.id).find(session=>session.status==='committed')||null;
+      if(latest?.source_hash===hash){sourceImport={id:latest.id,sha256:latest.source_hash,status:latest.status,reused:true,committed:latest.result||null};}
+      else {
+        let pending=this.store.listImportSessions(project.id).find(session=>session.status==='analyzed'&&session.source_hash===hash&&session.expected_graph_version===project.graph_version)||null;
+        const reusedPending=!!pending;
+        if(!pending)pending=this.previewMarkdownPlan({project_id:project.id,project_title:project.title,markdown,file_name:path.basename(planPath),source_file_path:planPath,expected_graph_version:project.graph_version,max_edge_cases_per_feature_per_pass:input.max_edge_cases_per_feature_per_pass??8});
+        sourceImport={id:pending.id,sha256:pending.source_hash,status:pending.status,reused:reusedPending,committed:null};
+        const committed=this.commitPlanImport({project_id:project.id,import_session_id:pending.id,expected_graph_version:project.graph_version,reason:'Start plan graph workflow'});
+        sourceImport={...sourceImport,status:'committed',committed};
+      }
+    }catch(error){return {status:'incomplete',project_id:project.id,project:this.store.getProject(project.id),workspace_root:workspace.workspace_root,source_import:sourceImport,failure:{code:error.code||'PLAN_IMPORT_FAILED',message:error.message},resumable:true};}
+    try{
+      const prepared=this.prepareSemanticFeatureSet({project_id:project.id,source_import_id:sourceImport.id,scope:input.scope||'project',max_features:input.max_features||25,source_node_limit:input.source_node_limit||120,actor:input.actor||'codex'});
+      return {status:'prepared',project:this.store.getProject(project.id),workspace_root:workspace.workspace_root,source_import:sourceImport,semantic_run:{run_id:prepared.run_id,status:prepared.status},brief:prepared.brief,resumable:false};
+    }catch(error){return {status:'incomplete',project_id:project.id,project:this.store.getProject(project.id),workspace_root:workspace.workspace_root,source_import:sourceImport,failure:{code:error.code||'SEMANTIC_PREPARATION_FAILED',message:error.message},resumable:true};}
   }
 
   readWorkspaceFile(fileUri) {
@@ -157,6 +194,7 @@ export class LsgService {
   deleteNodeImplementationPlan(input){const node=this.store.getNode(input.node_id);if(!node||node.project_id!==input.project_id||!['feature','edge_case'].includes(node.type))throw toolError('Node not found','NODE_NOT_FOUND');const current=this.store.getNodeDocument(node.id);if(!current)return {project_id:input.project_id,node_id:node.id,deleted:false};if(input.confirm_file_name!==current.file_name)throw toolError(`Confirm deletion with ${current.file_name}`,'CONFIRMATION_REQUIRED');const deleted=this.store.deleteNodeDocument(node.id,input.expected_document_version);if(node.implemented)this.store.updateNode(node.id,{verification_state:'stale',verified_at:null,last_invalidated_at:nowIso()});this.store.event({project_id:input.project_id,kind:'node.implementation_plan_deleted',actor:input.actor||'user',entity_id:node.id,data:{file_name:current.file_name}});this.activity.emit(input.project_id,[node.id],'plan_update',input.actor||'mcp');return {project_id:input.project_id,node_id:node.id,deleted:true,file_name:deleted.file_name};}
   getImplementationPlanCoverage(input){this.store.requireProject(input.project_id);const nodes=this.store.listNodes(input.project_id).filter(node=>node.status==='active'&&['feature','edge_case'].includes(node.type)&&(input.include_source||node.metadata?.layer==='semantic')&&!node.metadata?.semantic_root);const collator=new Intl.Collator('en',{numeric:true});const items=nodes.map(node=>{const plan=this.store.getNodeDocument(node.id),hasPlan=!!plan?.markdown?.trim();return {node_id:node.id,type:node.type,display_id:node.metadata?.display_id||null,title:node.title,has_plan:hasPlan,plan_status:hasPlan?'written':'missing',file_name:plan?.file_name||`${node.metadata?.display_id||node.id}-implementation-plan.md`,document_version:plan?.version||0};}).sort((a,b)=>collator.compare(a.display_id||a.title,b.display_id||b.title));return {project_id:input.project_id,total:items.length,with_plan:items.filter(item=>item.has_plan).length,missing_plan:items.filter(item=>!item.has_plan).length,features_with_plan:items.filter(item=>item.type==='feature'&&item.has_plan).length,features_missing_plan:items.filter(item=>item.type==='feature'&&!item.has_plan).length,edge_cases_with_plan:items.filter(item=>item.type==='edge_case'&&item.has_plan).length,edge_cases_missing_plan:items.filter(item=>item.type==='edge_case'&&!item.has_plan).length,items:input.missing_only?items.filter(item=>!item.has_plan):items};}
   getNextMissingPlans(input){return this.planBatches.nextMissing(input);}
+  getMissingPlansByStatus(input){return this.planBatches.missingByStatus(input);}
   stagePlanBatch(input){return this.planBatches.stage(input);}
   getPlanBatch(input){return this.planBatches.get(input);}
   applyPlanBatch(input){return this.planBatches.apply(input);}
@@ -169,7 +207,7 @@ export class LsgService {
     if(program==='overview'){const progress=this.workspace.progress({project_id:project.id}),coverage=this.getImplementationPlanCoverage({project_id:project.id});return {program,project:{id:project.id,title:project.title,graph_version:project.graph_version},counts:{features:progress.features_total,roots:progress.root_features,subfeatures:progress.subfeatures,edge_cases:progress.edge_cases_total,combined:progress.combined_total},completion:progress.counts,plans:{written:coverage.with_plan,missing:coverage.missing_plan},next:['feature','next_work','missing_plans','search']};}
     if(program==='feature'){if(!input.reference)throw toolError('reference is required for the feature program','INVALID_ARGUMENT');const resolved=this.semantic.resolveReference(project.id,input.reference),feature=nodeSummary(resolved.feature);return {program,project_id:project.id,feature,descendants:resolved.descendants.slice(0,limit).map(nodeSummary),edge_cases:resolved.edge_cases.slice(0,limit).map(nodeSummary),truncated:{descendants:resolved.descendants.length>limit,edge_cases:resolved.edge_cases.length>limit}};}
     if(program==='next_work'){const frontier=this.getFrontier({project_id:project.id,limit});return {program,project_id:project.id,mode:frontier.mode,items:frontier.frontier.map(node=>({...nodeSummary(node),dependency_ready:node.progress?.dependency_ready,blocked:node.progress?.blocked,recursive_edge_cases:node.progress?.recursive_edge_cases}))};}
-    if(program==='missing_plans'){const page=this.getNextMissingPlans({project_id:project.id,limit,cursor:input.cursor});return {program,project_id:project.id,graph_version:page.graph_version,missing_total:page.missing_total,next_cursor:page.next_cursor,items:page.items.map(item=>({node_id:item.node_id,display_id:item.display_id,type:item.type,title:item.title,priority:item.priority,file_name:item.file_name,document_version:item.document_version}))};}
+    if(program==='missing_plans'){const page=input.status?this.getMissingPlansByStatus({project_id:project.id,status:input.status,limit,cursor:input.cursor}):this.getNextMissingPlans({project_id:project.id,limit,cursor:input.cursor});return {program,project_id:project.id,...(input.status?{status:page.status}:{}),graph_version:page.graph_version,missing_total:page.missing_total,next_cursor:page.next_cursor,items:page.items.map(item=>({node_id:item.node_id,display_id:item.display_id,type:item.type,title:item.title,priority:item.priority,status:item.status||null,file_name:item.file_name,document_version:item.document_version}))};}
     if(program==='search'){if(!String(input.query||'').trim())throw toolError('query is required for the search program','INVALID_ARGUMENT');return {program,project_id:project.id,query:input.query,items:this.search({project_id:project.id,query:input.query,limit}).map(nodeSummary)};}
     throw toolError(`Unknown compact program: ${program}`,'INVALID_ARGUMENT');
   }
