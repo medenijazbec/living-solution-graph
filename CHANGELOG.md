@@ -6,6 +6,7 @@
 - Updated MCP discovery instructions, the semantic prompt, `AGENTS.md`, the README, and FAQ to require plan-path clarification, default semantic auto-publication, and live-list/frontier confirmation. Explicit review-only staging remains available.
 - Added paginated `solution.get_missing_plans_by_status` and the compact `missing_plans` status filter. The `implemented` filter includes awaiting-verification and fully-complete items.
 - Cursors now become stale if attached-plan changes alter missing-plan page membership, preventing pagination from silently skipping newly missing plans.
+- Manifest generation omits root-level npm pack output while preserving checksums for tracked distribution archives.
 - Fixed the feature editor's asynchronous selection race, kept saved feature fields editable, and refreshed node/project versions around plan and edge-case edits/deletions.
 - Added deep-blue implemented-feature cards with green photon outlines/glow, orange partial-progress badges, and reduced-motion support. Preserved priority colors on badges.
 - No SQLite migration or destructive data rewrite; existing project IDs, feature numbers, plans, histories, and prior releases remain compatible.
