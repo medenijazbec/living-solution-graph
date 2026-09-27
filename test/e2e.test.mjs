@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawn} from 'node:child_process';
-import { LsgStore } from '../src/core/db.mjs';import { LsgService } from '../src/core/service.mjs';import { McpProtocol, MODERN_PROTOCOL } from '../src/mcp/protocol.mjs';import { createHttpServer } from '../src/http/server.mjs';
+import { LsgStore } from '../src/core/db.mjs';import { LsgService } from '../src/core/service.mjs';import { McpProtocol, MODERN_PROTOCOL, SERVER_INFO } from '../src/mcp/protocol.mjs';import { createHttpServer } from '../src/http/server.mjs';
 
 async function httpRuntime(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-http-'));const store=new LsgStore(path.join(dir,'db.sqlite'));const service=new LsgService(store,{workspaceRoot:dir});const protocol=new McpProtocol(service);const config={host:'127.0.0.1',port:0,dbPath:path.join(dir,'db.sqlite'),workspaceRoot:dir,apiToken:'test-token',allowInsecure:false,allowedOrigins:[],allowedHosts:[],maxBodyBytes:2*1024*1024,rateLimitPerMinute:1000,logLevel:'error',upstreamBaseUrl:'',upstreamApiKey:'',modelMap:{'lsg-auto':'fake'}};const app=createHttpServer({service,protocol,config,log:()=>{}});const addr=await app.listen();const base=`http://127.0.0.1:${addr.port}`;return{dir,store,service,app,base,close:async()=>{await app.close();store.close();fs.rmSync(dir,{recursive:true,force:true});}}}
 async function jfetch(url,opts={}){const r=await fetch(url,{...opts,headers:{authorization:'Bearer test-token','content-type':'application/json',...(opts.headers||{})}});const j=await r.json().catch(()=>null);return{r,j};}
@@ -43,7 +43,7 @@ test('HTTP E2E: MCP bootstrap -> graph -> edge case -> implementation -> verific
   const notConfigured=await jfetch(x.base+'/v1/responses',{method:'POST',body:JSON.stringify({model:'lsg-auto',input:'hello'})});assert.equal(notConfigured.r.status,503);
 }finally{await x.close();}});
 
-test('HTTP security: unauthenticated API/MCP rejected while health remains public',async()=>{const x=await httpRuntime();try{let r=await fetch(x.base+'/healthz');assert.equal(r.status,200);r=await fetch(x.base+'/api/projects');assert.equal(r.status,401);r=await fetch(x.base+'/mcp',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});assert.equal(r.status,401);}finally{await x.close();}});
+test('HTTP security: unauthenticated API/MCP rejected while health remains public',async()=>{const x=await httpRuntime();try{let r=await fetch(x.base+'/healthz');assert.equal(r.status,200);assert.equal((await r.json()).version,SERVER_INFO.version);r=await fetch(x.base+'/api/projects');assert.equal(r.status,401);r=await fetch(x.base+'/mcp',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});assert.equal(r.status,401);}finally{await x.close();}});
 
 
 

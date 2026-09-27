@@ -3,7 +3,9 @@ import { buildRegistry, publicTools, validateArgs } from './registry.mjs';
 export const MODERN_PROTOCOL='2026-07-28';
 export const LEGACY_PROTOCOL='2025-11-25';
 export const LEGACY_PROTOCOLS=['2025-11-25','2025-06-18','2025-03-26','2024-11-05','2024-10-07'];
-export const SERVER_INFO={name:'living-solution-graph',version:'6.3.0'};
+import { VERSION } from '../version.mjs';
+
+export const SERVER_INFO={name:'living-solution-graph',version:VERSION};
 const LSG_INSTRUCTIONS='Living Solution Graph is callable through tools. Treat “use lsg”, “@lsg”, and “run lsg” as requests to use them. When graphing a master plan, first call solution.start_plan_graph_workflow with its existing Markdown filepath; do not create a generic project or author plans first. If the plan path is missing, ask; if workspace resolution is ambiguous, require a specific plan path or project_id. Codex authors evidence-linked semantic features and edge cases, then calls solution.stage_semantic_feature_set with auto_commit=true by default. Only an explicit review-only request may set auto_commit=false. After default publication, confirm solution.get_semantic_feature_list and solution.get_frontier; report invalid/empty proposals or resumable workflow failures as incomplete. Use solution.run_program for compact queries and the status-filtered missing_plans program to find nodes without Markdown implementation plans.';
 const SERVER_META_KEY='io.modelcontextprotocol/serverInfo';
 const PROTOCOL_META_KEY='io.modelcontextprotocol/protocolVersion';

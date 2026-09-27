@@ -28,3 +28,66 @@
 @media (prefers-reduced-motion: reduce) {
   .cards .node.implemented-feature.selected { animation: none; }
 }
+
+/* Completion state owns card outlines; importance colors remain on badges. */
+.cards .node[data-priority][data-visual-state="not-started"] {
+  --status-color: #ff4d63;
+  --status-ring: rgba(255, 77, 99, .66);
+  --status-glow: rgba(255, 77, 99, .34);
+  --status-pulse-ring: rgba(255, 77, 99, .95);
+  --status-pulse-glow: rgba(255, 77, 99, .68);
+}
+
+.cards .node[data-priority][data-visual-state="needs-verification"] {
+  --status-color: #24a8ff;
+  --status-ring: rgba(36, 168, 255, .68);
+  --status-glow: rgba(36, 168, 255, .38);
+  --status-pulse-ring: rgba(36, 168, 255, .96);
+  --status-pulse-glow: rgba(36, 168, 255, .74);
+}
+
+.cards .node[data-priority][data-visual-state="verified-partial"] {
+  --status-color: #ff9d2e;
+  --status-ring: rgba(255, 157, 46, .72);
+  --status-glow: rgba(255, 157, 46, .4);
+  --status-pulse-ring: rgba(255, 157, 46, .98);
+  --status-pulse-glow: rgba(255, 157, 46, .76);
+}
+
+.cards .node[data-priority][data-visual-state="fully-verified"] {
+  --status-color: #76f5a8;
+  --status-ring: rgba(118, 245, 168, .72);
+  --status-glow: rgba(50, 231, 119, .38);
+  --status-pulse-ring: rgba(186, 255, 206, .96);
+  --status-pulse-glow: rgba(50, 231, 119, .76);
+}
+
+.cards .node[data-priority][data-visual-state] {
+  border-color: var(--status-color);
+  box-shadow: 0 0 0 1px var(--status-ring), 0 0 16px var(--status-glow), 0 8px 22px #0009;
+}
+
+.cards .node[data-priority][data-visual-state]:hover,
+.cards .node[data-priority][data-visual-state]:focus-visible {
+  border-color: var(--status-color);
+  box-shadow: 0 0 0 2px var(--status-ring), 0 0 24px var(--status-glow), 0 12px 28px #000b;
+}
+
+.cards .node[data-priority][data-visual-state].selected {
+  border-color: var(--status-color);
+  animation: statusSignal 1.9s ease-in-out infinite;
+  box-shadow: 0 0 0 2px var(--status-ring), 0 0 22px var(--status-glow), 0 14px 32px #000b;
+}
+
+.cards .node[data-priority][data-visual-state].dragging {
+  border-color: var(--status-color);
+  box-shadow: 0 0 0 2px var(--status-ring), 0 0 26px var(--status-glow), 0 18px 38px #000b;
+}
+
+@keyframes statusSignal {
+  50% { box-shadow: 0 0 0 2px var(--status-pulse-ring), 0 0 34px var(--status-pulse-glow), 0 14px 30px #000b; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cards .node[data-priority][data-visual-state].selected { animation: none; }
+}

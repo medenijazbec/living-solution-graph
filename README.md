@@ -112,7 +112,9 @@ The first graphing request must include the path to an existing Markdown plan. C
 
 Codex then authors evidence-linked semantic features and edge cases. A valid proposal is published automatically by default, and Codex confirms the live semantic feature list and frontier before reporting completion. Only an explicit “review only” request leaves it staged. Ask for missing Markdown plans by status using `solution.get_missing_plans_by_status` or the compact `missing_plans` program. See the [FAQ](docs/FAQ.md) for the exact workflow and common questions.
 
-The 6.3.0 browser regression screenshots show the [implemented-feature state](docs/screenshots/v6.3.0/implemented-feature.png) and [partial-progress state](docs/screenshots/v6.3.0/partial-progress.png).
+### Semantic card status colors
+
+Feature and edge-case outlines reflect implementation progress before importance: red means no implementation progress; bright blue means work still needs current verification (including unverified, verifying, stale, or failed); neon orange means verified partial progress; and neon green means the full required feature/edge-case closure is verified. Priority remains visible independently in each P0–P3 badge. Browser regression captures: [not started](docs/screenshots/v6.3.1/not-started-red.png), [partial and unverified](docs/screenshots/v6.3.1/partial-unverified-blue.png), [partial and verified](docs/screenshots/v6.3.1/partial-verified-orange.png), and [fully verified](docs/screenshots/v6.3.1/fully-verified-green.png).
 
 Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **78 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
 

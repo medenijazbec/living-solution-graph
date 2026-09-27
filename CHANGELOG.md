@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.3.1 — 2026-09-27
+
+- Unified feature and edge-case outline/glow precedence: red for no progress, blue for progress needing current verification, orange for verified partial progress, and neon green for fully verified completion.
+- Kept P0–P3 priority badges independent from progress colors and made hover, selection pulses, and dragging retain the status color.
+- Added dense-browser regression coverage for the status matrix and updated README screenshots. No MCP/API or SQLite schema changes.
+
 ## 6.3.0 — 2026-09-26
 
 - Added `solution.start_plan_graph_workflow` as the first step for master-plan graphing. Projects are keyed by the canonical Markdown filepath, so multiple specifications in one workspace stay isolated; repeated imports of an unchanged file reuse its committed source import.
