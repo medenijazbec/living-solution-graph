@@ -36,6 +36,16 @@ export function placeRadialCards(boxes,saved={}){
 
 // Orthogonal visibility graph: candidate lanes follow inflated rectangle edges.
 // Every emitted segment is checked against card interiors.
+export function placeArchitectureCards(boxes,saved={}){
+  const groups=new Map();
+  for(const box of boxes){const key=box.architecture_key||'unassigned';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(box);}
+  const entries=[...groups].sort((a,b)=>a[0].localeCompare(b[0])),columns=Math.max(1,Math.ceil(Math.sqrt(entries.length))),local=entries.map(([key,members])=>({key,...placeRadialCards(members,{})}));
+  const widths=local.map(g=>Math.max(500,...g.boxes.map(b=>b.x+b.width))-Math.min(-500,...g.boxes.map(b=>b.x))),heights=local.map(g=>Math.max(500,...g.boxes.map(b=>b.y+b.height))-Math.min(-500,...g.boxes.map(b=>b.y)));
+  const cellWidth=Math.max(1200,...widths)+360,cellHeight=Math.max(1200,...heights)+360,placed=[],rings=[],architectures=[];
+  local.forEach((group,index)=>{const x=(index%columns)*cellWidth,y=Math.floor(index/columns)*cellHeight;architectures.push({key:group.key,x,y,label_y:y-Math.max(500,...group.boxes.map(b=>-b.y))-90});for(const box of group.boxes)placed.push({...box,x:box.x+x,y:box.y+y});for(const ring of group.rings)rings.push({...ring,architecture_key:group.key,x,y});});
+  return {boxes:placeCards(placed,saved),rings,architectures};
+}
+
 export function routeConnection(source,target,boxes){
   const start={x:source.x+source.width,y:source.y+source.height/2},end={x:target.x,y:target.y+target.height/2};
   const obstacles=boxes.map(b=>({...b,x:b.x-7,y:b.y-7,width:b.width+14,height:b.height+14}));

@@ -22,7 +22,7 @@ export class LsgStore {
 
   migrate() {
     const metaExists=this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='meta'").get();
-    if(metaExists&&Number(this.db.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value)>9)throw new Error('Database requires a newer LSG version');
+    if(metaExists&&Number(this.db.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value)>10)throw new Error('Database requires a newer LSG version');
     this.db.exec('BEGIN IMMEDIATE');
     try {
     this.db.exec(`
@@ -30,7 +30,7 @@ export class LsgStore {
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
-      INSERT INTO meta(key,value) VALUES('schema_version','9') ON CONFLICT(key) DO UPDATE SET value=excluded.value;
+      INSERT INTO meta(key,value) VALUES('schema_version','10') ON CONFLICT(key) DO UPDATE SET value=excluded.value;
 
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
@@ -337,7 +337,7 @@ export class LsgStore {
     if (!old) { const e=new Error(`Node not found: ${id}`); e.code='NODE_NOT_FOUND'; throw e; }
     if (expectedVersion != null && old.version !== expectedVersion) { const e=new Error(`Node version conflict: expected ${expectedVersion}, current ${old.version}`); e.code='NODE_VERSION_CONFLICT'; e.current_node_version=old.version; throw e; }
     const merged = { ...old, ...patch, version: old.version + 1, updated_at: nowIso(), metadata: { ...old.metadata, ...(patch.metadata || {}) } };
-    const definitionChanged=old.title!==merged.title||old.description!==merged.description||['acceptance_criteria','non_goals','trigger','expected_behavior','validation_scenario','source_node_ids'].some(k=>JSON.stringify(old.metadata[k])!==JSON.stringify(merged.metadata[k]));
+    const definitionChanged=old.title!==merged.title||old.description!==merged.description||['acceptance_criteria','non_goals','trigger','expected_behavior','validation_scenario','source_node_ids','source_citations','depends_on','parent_semantic_key'].some(k=>JSON.stringify(old.metadata[k])!==JSON.stringify(merged.metadata[k]));
     if(definitionChanged){merged.verification_state=old.implemented?'stale':'unverified';merged.verified_at=null;merged.last_invalidated_at=nowIso();}
     this.db.prepare(`UPDATE nodes SET title=?,description=?,origin=?,status=?,implemented=?,implementation_state=?,verification_state=?,
       source_claimed_implemented=?,disposition=?,parent_id=?,commit_sha=?,version=?,updated_at=?,implemented_at=?,verified_at=?,last_invalidated_at=?,metadata_json=? WHERE id=?`).run(

@@ -5,7 +5,7 @@ export function workspaceTools(service){
   const importanceLevel={type:'object',properties:{id:{type:'string',minLength:1,maxLength:32,pattern:'^[A-Za-z][A-Za-z0-9_-]{0,31}$'},label:{type:'string',minLength:1,maxLength:100},description:{type:'string',minLength:1,maxLength:500}},required:['id','label','description'],additionalProperties:false};
   const workResult={type:'object',properties:{summary:{type:'string',minLength:1,maxLength:4000},commit_sha:s,changed_files:strings,test_commands:strings,notes:s},required:['summary'],additionalProperties:false};
   const reviewEvidence={type:'object',properties:{kind:{type:'string',enum:['automated_test','manual_verification']},summary:{type:'string',minLength:1,maxLength:4000},command:s,exit_code:i,artifact_uri:s,commit_sha:s,checked_at:s},required:['kind','summary'],additionalProperties:false};
-  const scope={project_id:s,node_id:s,reference:s,recursive:b,limit:i};
+  const scope={project_id:s,node_id:s,reference:s,recursive:b,limit:i,architecture_key:s};
   const defs=[];const add=(name,description,properties,required,handler)=>defs.push({name,description,inputSchema:{type:'object',properties,required,additionalProperties:false},handler});
   add('solution.get_counts','Count unique semantic features, subfeatures, edge cases, combined items, completion categories and flags.',scope,['project_id'],a=>{const {items,...counts}=service.workspace.progress(a);return counts;});
   add('solution.get_feature_progress','Return direct and recursive feature completion including required edge cases and acceptance tests.',scope,['project_id'],a=>service.workspace.progress(a));

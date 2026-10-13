@@ -1,55 +1,47 @@
 # Frequently asked questions
 
-## What should I say to have Codex graph a master plan?
+## How do I graph a master plan?
 
-Give Codex the path to the Markdown file:
+Tell your coding agent:
 
 ```text
-Use LSG to graph the features and edge cases in C:\Projects\MyGame\MASTER_PLAN.md
+Use LSG to map C:\Projects\MyWebsite\MASTER_PLAN.md into the project at C:\Projects\MyWebsite. Author the architectures, all features and edge cases, and their implementation plans.
 ```
 
-Codex first calls `solution.start_plan_graph_workflow`. That creates or reuses the project for that exact file, imports and commits the source tree, and returns a compact evidence brief. Codex then writes and validates the semantic feature/edge-case proposal, publishes it by default, and checks the live semantic list and frontier before reporting completion.
+Codex first registers the source, reads it completely through LSG, authors the graph and Markdown plans, stages resumable batches and publishes the complete validated result. LSG itself does not extract implementation features or invent edge cases. See [the authoring workflow](AUTHORING_7.md).
 
-If you do not include an existing Markdown path, Codex should ask you which file to graph. It should not create a generic project and start writing plans first.
+## What if I have four master plans?
 
-## What if one workspace has several master plans?
+Supply their paths and the intended project directory. All four sources contribute to one project when bound to the same canonical directory. Different directories produce separate projects, even inside one Git repository. Without an explicit workspace, a plan's containing directory is used. Repository location is stored separately for Git operations.
 
-Each canonical Markdown filepath has its own project, even if several plan files live in the same directory or Git repository. Repeating the same filepath reuses its project. A workspace-only lookup that could refer to more than one plan project is ambiguous, so Codex asks you to choose a plan path or project ID instead of merging the graphs.
+Old file-based projects are retained separately during migration. When several share a directory, choose a project ID explicitly; LSG will not silently merge their data.
 
-This lets a workspace track several specifications independently, for example gameplay, networking, art, or production plans.
+## Why are there several circles?
 
-## Does Codex need me to say “Commit … semantic set” every time?
+Each circle is an architecture within the same project. For the full-stack template, the circles are TypeScript frontend, ASP.NET/C# backend and MySQL database. Each retains priority rings and normal/radial views; connections can cross circles. Filter by architecture or use Fit architecture for a closer view.
 
-No. A normal `use lsg` graphing request publishes the validated semantic proposal automatically. An explicit request such as “review only” is the only reason to leave it staged. You can always edit, regenerate, or supersede the semantic set later; source imports and semantic runs keep their history.
+## Does the template generate a website?
 
-If you explicitly requested review-only, Codex presents the staged diff. It should commit only after your approval, for example: `Commit MyGame semantic set`.
+It creates architecture groups and planning guidance. Codex authors features and plans from your requirements. Generating application code is a separate implementation task.
 
-## How can I see which features still need Markdown plans?
+## Do I still need to say “Commit semantic set”?
 
-Ask Codex to list missing plans by progress status, or use the compact `missing_plans` program. The paginated `solution.get_missing_plans_by_status` filter accepts:
+No. Complete validated authoring publishes by default. Explicit “review only” leaves it staged. You can subsequently publish that run or revise it. Unread sources, missing plans, invalid citations, dependency cycles and stale runs cannot be finalized.
 
-- `not_implemented`
-- `partially_implemented`
-- `implemented` — includes items awaiting verification and fully complete
+## Does every card have a Markdown plan?
 
-Only features and edge cases without an attached Markdown plan appear in these results. Continue with the returned cursor until it is empty.
+New authored features and edge cases require one. Click a card to view and edit its saved fields and rendered Markdown plan. Names are assigned from references, such as `F26.1.E1-implementation-plan.md`. Writing a plan does not mean its code is implemented or tested.
 
-## Can Codex write all the per-feature plans automatically?
+For legacy or later incomplete entries, query `solution.get_missing_plans_by_status` with `not_implemented`, `partially_implemented` or `implemented`. The last includes both awaiting verification and complete work. Add `architecture_key` to filter and page through `next_cursor`.
 
-It can, but a graphing request checks and reports missing plans rather than authoring them unless you ask for plan authoring. Plans attach to their feature or edge-case cards as Markdown and use stable names such as `F26.1.E1-implementation-plan.md`.
+## What do the colors mean?
 
-## How do I install the npm package?
+Red: no progress. Bright blue: progress lacking current verification, including stale/failed/verifying work. Neon orange: verified partial progress. Neon green: fully verified completion. P0–P3 priority badges keep their own colors. These rules are unchanged from 6.3.1.
 
-The npm package uses the available name `living-solution-graph-mcp` (the short `lsg` name is not used). After publication, install and run it with:
+## Can I use v7 with an older database?
 
-```powershell
-npm install --global living-solution-graph-mcp
-lsg-mcp doctor
-lsg-mcp http
-```
+Back up first. V7 migrates a copy or the chosen database to schema v10 while preserving existing IDs, plans, memory and history. It restores both v1 and v2 project snapshots. Older LSG binaries must use the pre-migration backup. Use a separate database for staging tests; the example is in [AUTHORING_7.md](AUTHORING_7.md).
 
-The web workspace defaults to `http://127.0.0.1:7347`. See [Install](INSTALL.md) for Codex configuration, data-directory, upgrade, and local-source instructions.
+## How do I install it?
 
-## Will upgrading damage an existing graph?
-
-This release adds MCP tools and UI behavior without changing the SQLite schema. Existing projects, node IDs, semantic numbers, plans, and history remain intact. Clients that do not use the new tools continue using the existing tool names and response fields; newer clients can use the additive kickoff and status-filtered plan query.
+See [INSTALL.md](INSTALL.md). V7 is initially delivered on `staging`; the published 6.3.1 release and active runtime are separate. The package name is `living-solution-graph-mcp`, not `lsg`. A staging push does not publish to npm.

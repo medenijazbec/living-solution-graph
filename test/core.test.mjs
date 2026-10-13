@@ -121,19 +121,6 @@ test('semantic feature proposals reject dependency cycles and unsupported source
   } finally {r.close();}
 });
 
-test('workspace resolution adopts the matching repository project and isolates other directories',()=>{
-  const r=runtime();try{
-    const edenRoot=path.join(r.dir,'Eden-Above');const otherRoot=path.join(r.dir,'Other-Project');
-    fs.mkdirSync(path.join(edenRoot,'.git'),{recursive:true});fs.mkdirSync(path.join(otherRoot,'.git'),{recursive:true});
-    r.service.createProject({project_id:'eden-above',title:'Eden Above'});
-    const eden=r.service.resolveWorkspaceProject({working_directory:path.join(edenRoot,'src')});
-    assert.equal(eden.project.id,'eden-above');assert.equal(eden.created,false);assert.equal(eden.workspace_root,path.resolve(edenRoot));
-    const other=r.service.resolveWorkspaceProject({working_directory:otherRoot});
-    assert.equal(other.created,true);assert.notEqual(other.project.id,'eden-above');
-    assert.equal(r.service.resolveWorkspaceProject({working_directory:path.join(otherRoot,'nested')}).project.id,other.project.id);
-  }finally{r.close();}
-});
-
 test('semantic staging auto-commits by default and returns recursive feature and edge-case counts',()=>{
   const r=runtime();try{
     let p=r.service.createProject({project_id:'semantic-auto',title:'Semantic auto'});

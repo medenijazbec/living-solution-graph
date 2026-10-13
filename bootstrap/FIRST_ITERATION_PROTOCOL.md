@@ -1,3 +1,7 @@
+# Historical lexical bootstrap protocol (retired in v7)
+
+This document describes previous releases. For new work use [AUTHORING_7.md](../docs/AUTHORING_7.md). Automatic graph-generation tools are disabled.
+
 # First Iteration Protocol
 
 This is the short operational protocol for importing the first `.md` plan into an empty Living Solution Graph.

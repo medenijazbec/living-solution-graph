@@ -1,3 +1,10 @@
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
-import { LsgStore, LsgService, McpProtocol } from '../src/index.mjs';
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-smoke-'));const store=new LsgStore(path.join(dir,'db.sqlite'));try{const service=new LsgService(store,{workspaceRoot:dir});const protocol=new McpProtocol(service);const p=service.createProject({project_id:'smoke',title:'Smoke'});const preview=service.previewMarkdownPlan({project_id:p.id,expected_graph_version:p.graph_version,markdown:'# Web app\n- frontend\n- backend API\n- database\n- login\n- payments',file_name:'smoke.md'});const result=service.commitPlanImport({project_id:p.id,import_session_id:preview.id,expected_graph_version:preview.expected_graph_version});const audit=service.auditImplementationStatus({project_id:p.id});const list=await protocol.handle({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'smoke',version:'1'}}},{era:'legacy'});if(!result.created_nodes||audit.total<5||list.result?.serverInfo?.name!=='living-solution-graph')throw new Error('Smoke validation failed');console.log(JSON.stringify({ok:true,created_nodes:result.created_nodes,tracked:audit.total},null,2));}finally{store.close();fs.rmSync(dir,{recursive:true,force:true});}
+import { McpProtocol } from '../src/index.mjs';
+import { authoringFixture, publishFixture } from '../test/fixtures/authoring.mjs';
+const fixture=authoringFixture();
+try{
+  const {start,published}=publishFixture(fixture),counts=fixture.service.workspace.progress({project_id:start.project.id});
+  const protocol=new McpProtocol(fixture.service);
+  const initialized=await protocol.handle({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'smoke',version:'1'}}},{era:'legacy'});
+  if(published.status!=='committed'||counts.combined_total!==6||published.missing_plans!==0||initialized.result?.serverInfo?.version!=='7.0.0')throw new Error('Authoring smoke failed');
+  console.log(JSON.stringify({ok:true,architectures:published.architecture_count,features:counts.features_total,edge_cases:counts.edge_cases_total,missing_plans:published.missing_plans},null,2));
+}finally{fixture.close();}

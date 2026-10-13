@@ -10,20 +10,20 @@ export class PlanBatches {
 
   nextMissing(input){
     const project=this.store.requireProject(input.project_id),limit=Math.max(1,Math.min(25,Number(input.limit)||10));
-    const coverage=this.service.getImplementationPlanCoverage({project_id:project.id,include_source:!!input.include_source});
+    const coverage=this.service.getScopedPlanCoverage({project_id:project.id,include_source:!!input.include_source,architecture_key:input.architecture_key});
     let start=0;
-    if(input.cursor){let token;try{token=JSON.parse(Buffer.from(input.cursor,'base64url').toString('utf8'));}catch{fail('Invalid missing-plan cursor','INVALID_CURSOR');}if(token.project_id!==project.id||token.graph_version!==project.graph_version)fail('Missing-plan cursor is stale','STALE_CURSOR');start=coverage.items.findIndex(item=>item.node_id===token.after_node_id)+1;if(start===0)fail('Missing-plan cursor is stale','STALE_CURSOR');}
+    if(input.cursor){let token;try{token=JSON.parse(Buffer.from(input.cursor,'base64url').toString('utf8'));}catch{fail('Invalid missing-plan cursor','INVALID_CURSOR');}if(token.project_id!==project.id||token.graph_version!==project.graph_version||(token.architecture_key||null)!==(input.architecture_key||null))fail('Missing-plan cursor is stale','STALE_CURSOR');start=coverage.items.findIndex(item=>item.node_id===token.after_node_id)+1;if(start===0)fail('Missing-plan cursor is stale','STALE_CURSOR');}
     const selected=[];let lastIndex=start-1;
     for(let index=start;index<coverage.items.length&&selected.length<limit;index++){const item=coverage.items[index];lastIndex=index;if(item.has_plan)continue;const node=this.store.getNode(item.node_id);selected.push({...item,description:node.description,parent_id:node.parent_id,priority:node.metadata?.priority||null,source_node_ids:node.metadata?.source_node_ids||[],acceptance_criteria:node.metadata?.acceptance_criteria||[],trigger:node.metadata?.trigger||null,expected_behavior:node.metadata?.expected_behavior||null,validation_scenario:node.metadata?.validation_scenario||null});}
     const hasMore=coverage.items.slice(lastIndex+1).some(item=>!item.has_plan),after=coverage.items[lastIndex];
-    return {project_id:project.id,graph_version:project.graph_version,limit,missing_total:coverage.missing_plan,items:selected,next_cursor:hasMore&&after?Buffer.from(JSON.stringify({project_id:project.id,graph_version:project.graph_version,after_node_id:after.node_id})).toString('base64url'):null};
+    return {project_id:project.id,graph_version:project.graph_version,limit,missing_total:coverage.missing_plan,items:selected,next_cursor:hasMore&&after?Buffer.from(JSON.stringify({project_id:project.id,architecture_key:input.architecture_key||null,graph_version:project.graph_version,after_node_id:after.node_id})).toString('base64url'):null};
   }
 
   missingByStatus(input){
     const statuses=new Set(['not_implemented','partially_implemented','implemented']);
     if(!statuses.has(input.status))fail('status must be not_implemented, partially_implemented, or implemented');
     const project=this.store.requireProject(input.project_id),limit=Math.max(1,Math.min(25,Number(input.limit)||10));
-    const coverage=this.service.getImplementationPlanCoverage({project_id:project.id});
+    const coverage=this.service.getScopedPlanCoverage({project_id:project.id,architecture_key:input.architecture_key});
     const progress=this.service.workspace.progress({project_id:project.id}),byId=new Map(progress.items.map(item=>[item.id,item]));
     const matches=item=>{
       const category=byId.get(item.node_id)?.category;
@@ -37,11 +37,11 @@ export class PlanBatches {
     let start=0;
     if(input.cursor){
       let token;try{token=JSON.parse(Buffer.from(input.cursor,'base64url').toString('utf8'));}catch{fail('Invalid missing-plan cursor','INVALID_CURSOR');}
-      if(token.project_id!==project.id||token.status!==input.status||token.graph_version!==project.graph_version||token.coverage_key!==coverageKey)fail('Missing-plan cursor is stale or belongs to another project/status/coverage snapshot','STALE_CURSOR');
+      if(token.project_id!==project.id||(token.architecture_key||null)!==(input.architecture_key||null)||token.status!==input.status||token.graph_version!==project.graph_version||token.coverage_key!==coverageKey)fail('Missing-plan cursor is stale or belongs to another project/status/coverage snapshot','STALE_CURSOR');
       start=candidates.findIndex(item=>item.node_id===token.after_node_id)+1;if(start===0)fail('Missing-plan cursor is stale','STALE_CURSOR');
     }
     const items=candidates.slice(start,start+limit),last=items.at(-1),hasMore=start+items.length<candidates.length;
-    const nextCursor=hasMore&&last?Buffer.from(JSON.stringify({project_id:project.id,status:input.status,graph_version:project.graph_version,coverage_key:coverageKey,after_node_id:last.node_id})).toString('base64url'):null;
+    const nextCursor=hasMore&&last?Buffer.from(JSON.stringify({project_id:project.id,architecture_key:input.architecture_key||null,status:input.status,graph_version:project.graph_version,coverage_key:coverageKey,after_node_id:last.node_id})).toString('base64url'):null;
     return {project_id:project.id,status:input.status,graph_version:project.graph_version,limit,missing_total:candidates.length,items,next_cursor:nextCursor};
   }
 

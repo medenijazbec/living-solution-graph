@@ -29,7 +29,7 @@ export class Workspace {
     for(const n of nodes)if(n.parent_id)add(n.parent_id,n.id);
     for(const e of edges)if(['contains','has_edge_case','validated_by'].includes(e.type))add(e.source_id,e.target_id);
     const collect=(id,recursive=true)=>{const ids=new Set();const visit=(key,descend)=>{if(ids.has(key)||!byId.has(key))return;ids.add(key);if(descend&&!excluded(byId.get(key))&&byId.get(key).disposition!=='optional')for(const child of children.get(key)||[])visit(child,recursive);};visit(id,true);return [...ids].map(id=>byId.get(id));};
-    const root=a.reference||a.node_id?this.node(a):null;const scoped=root?collect(root.id,a.recursive!==false):nodes;const tracked=scoped.filter(n=>['feature','edge_case'].includes(n.type)),active=tracked.filter(n=>!excluded(n));
+    const root=a.reference||a.node_id?this.node(a):null;const scoped=(root?collect(root.id,a.recursive!==false):nodes).filter(n=>!a.architecture_key||n.metadata.architecture_key===a.architecture_key);const tracked=scoped.filter(n=>['feature','edge_case'].includes(n.type)),active=tracked.filter(n=>!excluded(n));
     const summary=n=>{
       const closure=(n.type==='feature'?collect(n.id):[n]).filter(required);
       const count=closure.filter(implemented).length;const complete=closure.length>0&&closure.every(verified);
@@ -41,7 +41,7 @@ export class Workspace {
     const counters=list=>({total:list.length,not_started:list.filter(x=>x.category==='not_started').length,partially_implemented:list.filter(x=>x.category==='partially_implemented').length,awaiting_verification:list.filter(x=>x.category==='awaiting_verification').length,fully_complete:list.filter(x=>x.category==='fully_complete').length,blocked:list.filter(x=>x.blocked).length,stale:list.filter(x=>x.stale).length,failed_verification:list.filter(x=>x.failed).length});
     return {project_id:a.project_id,graph_version:this.store.requireProject(a.project_id).graph_version,mode:semantic?'semantic':'lexical_fallback',scope:root?.id||'project',features_total:features.length,root_features:features.filter(n=>!n.metadata.parent_semantic_key).length,subfeatures:features.filter(n=>n.metadata.parent_semantic_key).length,edge_cases_total:active.filter(n=>n.type==='edge_case').length,combined_total:active.length,counts:counters(items),feature_counts:counters(items.filter(x=>x.type==='feature')),edge_case_counts:counters(items.filter(x=>x.type==='edge_case')),excluded_total:tracked.filter(excluded).length,superseded_total:tracked.filter(n=>n.status==='superseded').length,excluded:tracked.filter(excluded).map(n=>({id:n.id,status:n.status})),items};
   }
-  remaining(a){const result=this.progress(a),nodes=new Map(this.store.listNodes(a.project_id).map(n=>[n.id,n])),edges=this.store.listEdges(a.project_id),byId=new Map((a.reference||a.node_id?this.progress({project_id:a.project_id}).items:result.items).map(x=>[x.id,x]));const scale=importanceScale(this.store),rank=new Map(scale.levels.map((l,i)=>[l.id,i]));
+  remaining(a){const result=this.progress(a),nodes=new Map(this.store.listNodes(a.project_id).map(n=>[n.id,n])),edges=this.store.listEdges(a.project_id),byId=new Map(this.progress({project_id:a.project_id}).items.map(x=>[x.id,x]));const scale=importanceScale(this.store),rank=new Map(scale.levels.map((l,i)=>[l.id,i]));
     const items=result.items.filter(n=>n.category!=='fully_complete').map(n=>{
       const deps=edges.filter(e=>e.source_id===n.id&&e.type==='depends_on').map(e=>e.target_id);
       // A child may depend on its containing feature's own implementation;

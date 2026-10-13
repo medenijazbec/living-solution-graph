@@ -159,3 +159,21 @@ The sandbox could not resolve the npm registry during an attempt to install the 
 ## Deployment boundary
 
 The packaged implementation is suitable for a single active server instance with a local persistent SQLite database. Horizontal multi-host writes require a shared transactional storage adapter; the package does not claim HA/multi-writer SQLite support.
+# LSG 7.0.0 staging verification — 2026-10-13
+
+All checks below passed on Windows with Node.js 22.16.0, using isolated temporary databases:
+
+- `npm test`: 73 tests, 73 passed, 0 failed. Includes HTTP/stdio E2E, directory project identity, full-source reading, citations/coverage, batch recovery, required plans, atomic rollback, scoped architecture updates, cross-group dependency cycles, stable numbering/overrides/history, template idempotency, snapshot v1/v2 restore and backed-up instance reset.
+- `npm run smoke`: 3 authored architectures, 3 features, 3 edge cases, 0 missing plans.
+- `npm run verify`: 49 JavaScript/module files syntax-checked; all required package files present.
+- Doctor: healthy v7.0.0 runtime with a separate temporary database.
+- `npm run test:architectures`: three architecture circles with 72 cards, no overlaps, cross-circle drag connections, architecture filtering/fit, persisted positions, editable fields, rendered Markdown, original source view and registration without generated nodes.
+- `npm run test:browser`: dense workspace interactions, status-color matrix, reduced motion, editing/deletion, plan rendering, live activity, authentication and source privacy controls.
+- `npm run test:orbital`: compact controls, Earth rotation, reduced motion, texture/GPU fallbacks, narrow viewport and no external runtime requests.
+- `node scripts/verify-migration.mjs <existing-db>`: migration on a consistent temporary copy of a schema-v9 database; all project, node, edge, document, source/import, memory, revision and event records remained identical. SQLite integrity and foreign keys passed.
+
+Browser evidence: [architecture circles](docs/screenshots/v7.0.0/architecture-circles.png), [selected Markdown plan](docs/screenshots/v7.0.0/architecture-plan-editor.png), [red](docs/screenshots/v7.0.0/not-started-red.png), [blue](docs/screenshots/v7.0.0/partial-unverified-blue.png), [orange](docs/screenshots/v7.0.0/partial-verified-orange.png), [green](docs/screenshots/v7.0.0/fully-verified-green.png).
+
+This is staging delivery only. Master and published releases remain 6.3.1. Instance cleanup uses `scripts/reset-instance.mjs`, which creates and verifies a SQLite backup before deleting project data and preserves the original database schema, instance settings, personal memory and source files.
+
+---

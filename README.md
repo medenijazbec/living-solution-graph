@@ -20,14 +20,14 @@
 <p align="center">
   <a href="https://github.com/medenijazbec/living-solution-graph/releases"><img alt="release" src="https://img.shields.io/github/v/release/medenijazbec/living-solution-graph?style=flat-square&color=2f81f7&cacheSeconds=60"></a>
   <a href="https://github.com/medenijazbec/living-solution-graph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/medenijazbec/living-solution-graph/ci.yml?branch=master&style=flat-square&label=build&cacheSeconds=60"></a>
-  <img alt="tests" src="https://img.shields.io/badge/tests-66%20passing-2ea043?style=flat-square">
+  <img alt="tests" src="https://img.shields.io/badge/tests-unit%20%2B%20browser-2ea043?style=flat-square">
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="MCP" src="https://img.shields.io/badge/MCP-stdio%20%7C%20HTTP-7c3aed?style=flat-square">
   <img alt="runtime dependencies" src="https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9?style=flat-square">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-2ea043?style=flat-square"></a>
 </p>
 
-LSG turns a Markdown master plan into a connected, numbered backlog that an AI coding agent can query and update. Features, subfeatures, edge cases, dependencies, implementation plans, test evidence, Git commits, and durable project decisions remain available after the model's context window ends.
+In LSG 7, Codex reads entire Markdown master plans and authors a connected, numbered backlog that an AI coding agent can query and update. Features, subfeatures, edge cases, dependencies, implementation plans, test evidence, Git commits, and durable project decisions remain available after the model's context window ends.
 
 It works with Codex and other Model Context Protocol clients. No model API key or runtime npm dependency is required.
 
@@ -94,29 +94,25 @@ or:
 
 LSG also supports stdio clients. Copy and adapt [`mcp.json.example`](mcp.json.example).
 
-## Typical workflow
+## Codex authoring and architecture circles
 
-```text
-Markdown master plan
-        ↓
-lexical source graph
-        ↓
-semantic features + subfeatures + edge cases
-        ↓
-dependency-ready implementation frontier
-        ↓
-implementation plan → code → tests → evidence → verification
-```
+V7 is delivered on the staging branch. Clone with `git clone --branch staging https://github.com/medenijazbec/living-solution-graph.git` and use a separate database for testing. Master and the published 6.3.1 release remain unchanged.
 
-The first graphing request must include the path to an existing Markdown plan. Codex starts with `solution.start_plan_graph_workflow`, which creates or reuses a project keyed to that exact file, imports and commits its lexical source graph, and prepares bounded evidence for semantic authoring. Different plan files remain separate projects, including plans in one folder or Git repository. With no path—or an ambiguous workspace-only lookup—Codex asks which plan to use.
+The first tool is `solution.start_plan_graph_workflow`: register the original Markdown in a canonical workspace-directory project. Registration creates no inferred features or edge cases. Multiple plans in that directory contribute to the same project; repository identity is separate.
 
-Codex then authors evidence-linked semantic features and edge cases. A valid proposal is published automatically by default, and Codex confirms the live semantic feature list and frontier before reporting completion. Only an explicit “review only” request leaves it staged. Ask for missing Markdown plans by status using `solution.get_missing_plans_by_status` or the compact `missing_plans` program. See the [FAQ](docs/FAQ.md) for the exact workflow and common questions.
+Codex reads every source through `solution.read_plan_source`, identifies architectures, and writes bounded features, subfeatures, edge cases, acceptance criteria, dependencies, a source coverage ledger and a meaningful Markdown implementation plan for every feature and edge case. Resumable batches are published atomically by `solution.finalize_plan_graph_workflow` after validation. Review-only is an explicit opt-out; unread, stale or incompletely planned proposals cannot be finalized.
+
+Each architecture has a separate priority-ring circle on the same canvas. The `fullstack-typescript-aspnet-mysql` template supplies TypeScript frontend, ASP.NET/C# backend and MySQL database architecture groups with guidance only. Codex derives their actual features and plans from the sources. F-numbers stay unique across the project, and dependencies can cross circles.
+
+Query `solution.list_architectures` or `solution.get_architecture_context`; filter progress, counts, frontier and missing plans with `architecture_key`. In the UI, select an architecture and fit it to view. New browser evidence: [three architecture circles](docs/screenshots/v7.0.0/architecture-circles.png) and [selected plan editor](docs/screenshots/v7.0.0/architecture-plan-editor.png).
+
+See [the authoring contract and isolated test setup](docs/AUTHORING_7.md) and [FAQ](docs/FAQ.md). Automatic lexical-generation tools now return `LEGACY_GENERATION_RETIRED`. Existing graphs remain readable. Schema v10 and snapshot v2 preserve old records; v1 snapshots remain restorable. Older binaries must use their pre-migration backup.
 
 ### Semantic card status colors
 
 Feature and edge-case outlines reflect implementation progress before importance: red means no implementation progress; bright blue means work still needs current verification (including unverified, verifying, stale, or failed); neon orange means verified partial progress; and neon green means the full required feature/edge-case closure is verified. Priority remains visible independently in each P0–P3 badge. Browser regression captures: [not started](docs/screenshots/v6.3.1/not-started-red.png), [partial and unverified](docs/screenshots/v6.3.1/partial-unverified-blue.png), [partial and verified](docs/screenshots/v6.3.1/partial-verified-orange.png), and [fully verified](docs/screenshots/v6.3.1/fully-verified-green.png).
 
-Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **78 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
+Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **88 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
 
 ## Safe state changes
 

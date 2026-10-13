@@ -9,15 +9,12 @@ import { Workspace } from './workspace.mjs';
 import { Activity } from './activity.mjs';
 import { PlanBatches } from './plan-batches.mjs';
 import { ProjectSnapshots } from './project-snapshots.mjs';
+import { Authoring } from './authoring.mjs';
 
 function sha256(s){return createHash('sha256').update(s).digest('hex');}
 function normalizePlanText(s){return String(s).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trimEnd();}
 function approxTokens(s){return Math.ceil(String(s).length/4);}
 function toolError(message,code='LSG_ERROR',extra={}){const e=new Error(message);e.code=code;Object.assign(e,extra);return e;}
-function canonicalWorkspace(value){const resolved=path.resolve(String(value||'.'));return process.platform==='win32'?resolved.toLowerCase():resolved;}
-function isWithin(candidate,root){return candidate===root||candidate.startsWith(root.endsWith(path.sep)?root:root+path.sep);}
-function workspaceBaseId(root){return path.basename(root).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'workspace';}
-function workspaceSlug(root){return `${workspaceBaseId(root)}-${sha256(canonicalWorkspace(root)).slice(0,10)}`;}
 
 export class LsgService {
   constructor(store,{workspaceRoot='.'}={}) {
@@ -28,6 +25,7 @@ export class LsgService {
     this.activity=new Activity(this);
     this.planBatches=new PlanBatches(this);
     this.snapshots=new ProjectSnapshots(this);
+    this.authoring=new Authoring(this);
     store.activity=this.activity;
   }
 
@@ -35,57 +33,11 @@ export class LsgService {
   ensureProject(projectId,title='Imported project') { return this.store.getProject(projectId)||this.store.createProject({id:projectId,title}); }
 
   resolveWorkspaceProject(input={}) {
-    if(!input.working_directory)throw toolError('working_directory is required','INVALID_ARGUMENT');
-    const supplied=path.resolve(String(input.working_directory));const requested=fs.existsSync(supplied)&&fs.statSync(supplied).isFile()?path.dirname(supplied):supplied;const key=canonicalWorkspace(requested);const projects=this.store.listProjects();
-    let root=requested;while(!fs.existsSync(path.join(root,'.git'))){const parent=path.dirname(root);if(parent===root)break;root=parent;}if(!fs.existsSync(path.join(root,'.git')))root=requested;
-    const rootKey=canonicalWorkspace(root);
-    const requestedProject=input.project_id?this.store.getProject(input.project_id):null;
-    if(requestedProject){const project=this.store.updateProjectMetadata(requestedProject.id,{workspace_root:root,workspace_key:rootKey,repository_root:requestedProject.metadata?.repository_root||root});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
-    const planProjects=projects.filter(project=>project.metadata?.master_plan_key&&canonicalWorkspace(project.metadata.workspace_root||project.metadata.repository_root||'')===rootKey);
-    if(planProjects.length>1)throw toolError(`Multiple master-plan projects are bound to this workspace (${planProjects.map(project=>project.title).join(', ')}). Supply a plan file path or project_id.`,'AMBIGUOUS_PROJECT',{project_ids:planProjects.map(project=>project.id)});
-    if(planProjects.length===1){const project=planProjects[0];return {project,workspace_root:root,workspace_key:rootKey,created:false};}
-    const matchingUnboundProject=projects.find(project=>project.id===workspaceBaseId(root)&&!project.metadata?.workspace_root&&!project.metadata?.repository_root);
-    if(matchingUnboundProject){const project=this.store.updateProjectMetadata(matchingUnboundProject.id,{workspace_root:root,workspace_key:rootKey,repository_root:root});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
-    const bound=projects.map(project=>({project,root:project.metadata?.workspace_root||project.metadata?.repository_root})).filter(x=>x.root).map(x=>({...x,canonical:canonicalWorkspace(x.root)})).filter(x=>isWithin(key,x.canonical)).sort((a,b)=>b.canonical.length-a.canonical.length)[0];
-    if(bound){const project=bound.project.metadata?.workspace_root?bound.project:this.store.updateProjectMetadata(bound.project.id,{workspace_root:path.resolve(bound.root),workspace_key:bound.canonical});return {project,workspace_root:path.resolve(bound.root),workspace_key:bound.canonical,created:false};}
-    const exact=projects.find(project=>canonicalWorkspace(project.metadata?.workspace_root||project.metadata?.repository_root||'')===rootKey);
-    if(exact){const project=this.store.updateProjectMetadata(exact.id,{workspace_root:root,workspace_key:rootKey});return {project,workspace_root:root,workspace_key:rootKey,created:false};}
-    const id=input.project_id||workspaceSlug(root);const project=this.store.getProject(id)||this.store.createProject({id,title:input.project_title||path.basename(root)||id,description:input.description||'',metadata:{workspace_root:root,workspace_key:rootKey,repository_root:root,auto_created_from_workspace:true}});
-    return {project,workspace_root:root,workspace_key:rootKey,created:true};
+    return this.authoring.resolve(input);
   }
 
   startPlanGraphWorkflow(input={}) {
-    if(!input.plan_file_path)throw toolError('plan_file_path is required. Ask which existing Markdown master plan to graph.','PLAN_PATH_REQUIRED');
-    const supplied=path.resolve(this.workspaceRoot,String(input.plan_file_path));
-    if(path.extname(supplied).toLowerCase()!=='.md'||!fs.existsSync(supplied)||!fs.statSync(supplied).isFile())throw toolError('plan_file_path must identify an existing Markdown file','INVALID_ARGUMENT');
-    if(fs.statSync(supplied).size>2*1024*1024)throw toolError('Plan file exceeds 2 MiB import limit','FILE_TOO_LARGE');
-    const planPath=fs.realpathSync(supplied),planKey=canonicalWorkspace(planPath),markdown=fs.readFileSync(planPath,'utf8');
-    let project=this.store.listProjects().find(candidate=>candidate.metadata?.master_plan_key===planKey)||null;
-    const projectId=project?.id||`plan-${sha256(planKey).slice(0,20)}`;
-    if(!project){const collision=this.store.getProject(projectId);if(collision)throw toolError('Deterministic plan project ID is already used by a non-matching project','PROJECT_ID_COLLISION');project=this.store.createProject({id:projectId,title:input.project_title||path.basename(planPath,path.extname(planPath)),description:`Semantic implementation graph for ${path.basename(planPath)}`,metadata:{master_plan_path:planPath,master_plan_key:planKey,auto_created_from_plan:true}});}
-    else this.store.updateProjectMetadata(project.id,{master_plan_path:planPath,master_plan_key:planKey});
-    let workspace;
-    try{workspace=this.resolveWorkspaceProject({working_directory:path.dirname(planPath),project_id:project.id});}
-    catch(error){return {status:'incomplete',project_id:project.id,project:this.store.getProject(project.id),failure:{code:error.code||'WORKSPACE_RESOLUTION_FAILED',message:error.message},resumable:true};}
-    project=workspace.project;
-    let sourceImport=null;
-    try{
-      const hash=sha256(markdown);
-      const latest=this.store.listImportSessions(project.id).find(session=>session.status==='committed')||null;
-      if(latest?.source_hash===hash){sourceImport={id:latest.id,sha256:latest.source_hash,status:latest.status,reused:true,committed:latest.result||null};}
-      else {
-        let pending=this.store.listImportSessions(project.id).find(session=>session.status==='analyzed'&&session.source_hash===hash&&session.expected_graph_version===project.graph_version)||null;
-        const reusedPending=!!pending;
-        if(!pending)pending=this.previewMarkdownPlan({project_id:project.id,project_title:project.title,markdown,file_name:path.basename(planPath),source_file_path:planPath,expected_graph_version:project.graph_version,max_edge_cases_per_feature_per_pass:input.max_edge_cases_per_feature_per_pass??8});
-        sourceImport={id:pending.id,sha256:pending.source_hash,status:pending.status,reused:reusedPending,committed:null};
-        const committed=this.commitPlanImport({project_id:project.id,import_session_id:pending.id,expected_graph_version:project.graph_version,reason:'Start plan graph workflow'});
-        sourceImport={...sourceImport,status:'committed',committed};
-      }
-    }catch(error){return {status:'incomplete',project_id:project.id,project:this.store.getProject(project.id),workspace_root:workspace.workspace_root,source_import:sourceImport,failure:{code:error.code||'PLAN_IMPORT_FAILED',message:error.message},resumable:true};}
-    try{
-      const prepared=this.prepareSemanticFeatureSet({project_id:project.id,source_import_id:sourceImport.id,scope:input.scope||'project',max_features:input.max_features||25,source_node_limit:input.source_node_limit||120,actor:input.actor||'codex'});
-      return {status:'prepared',project:this.store.getProject(project.id),workspace_root:workspace.workspace_root,source_import:sourceImport,semantic_run:{run_id:prepared.run_id,status:prepared.status},brief:prepared.brief,resumable:false};
-    }catch(error){return {status:'incomplete',project_id:project.id,project:this.store.getProject(project.id),workspace_root:workspace.workspace_root,source_import:sourceImport,failure:{code:error.code||'SEMANTIC_PREPARATION_FAILED',message:error.message},resumable:true};}
+    return this.authoring.register(input);
   }
 
   readWorkspaceFile(fileUri) {
@@ -177,7 +129,7 @@ export class LsgService {
     const parent=this.store.getNode(input.parent_feature_id);if(!parent||parent.project_id!==input.project_id)throw toolError('Parent feature not found','NODE_NOT_FOUND');
     const norm=normalizeTitle(input.title); const existing=this.store.listNodes(input.project_id,{types:['edge_case'],status:'active'}).find(node=>normalizeTitle(node.title)===norm&&node.parent_id===parent.id); if(existing)return {...existing,created:false};
     const semanticParent=parent.metadata?.layer==='semantic';const directSemanticCases=semanticParent?this.store.listNodes(input.project_id,{types:['edge_case']}).filter(node=>node.parent_id===parent.id&&node.metadata?.layer==='semantic').map(node=>Number(node.metadata?.display_id?.match(/\.E(\d+)$/)?.[1]||0)):[];
-    const semanticMetadata=semanticParent?{layer:'semantic',semantic_key:`${parent.metadata.semantic_key}.user_edge_case.${newId('key')}`,feature_key:parent.metadata.semantic_key,display_id:`${parent.metadata.display_id}.E${Math.max(0,...directSemanticCases)+1}`,source_node_ids:parent.metadata.source_node_ids||[],trigger:input.trigger||'A newly discovered implementation or runtime condition occurs.',expected_behavior:input.expected_behavior||'The feature remains safe and reports a recoverable outcome.',validation_scenario:input.validation_scenario||'Exercise the discovered condition with a repeatable regression scenario.'}:{};
+    const semanticMetadata=semanticParent?{layer:'semantic',semantic_key:`${parent.metadata.semantic_key}.user_edge_case.${newId('key')}`,feature_key:parent.metadata.semantic_key,display_id:`${parent.metadata.display_id}.E${Math.max(0,...directSemanticCases)+1}`,source_node_ids:parent.metadata.source_node_ids||[],source_citations:parent.metadata.source_citations||[],architecture_key:parent.metadata.architecture_key,priority:parent.metadata.priority,trigger:input.trigger||'A newly discovered implementation or runtime condition occurs.',expected_behavior:input.expected_behavior||'The feature remains safe and reports a recoverable outcome.',validation_scenario:input.validation_scenario||'Exercise the discovered condition with a repeatable regression scenario.'}:{};
     const node=this.store.insertNode({project_id:input.project_id,type:'edge_case',title:input.title,description:input.description||'',origin:input.origin||'model_discovery',implemented:false,implementation_state:'not_implemented',verification_state:'unverified',disposition:input.disposition||'required',parent_id:parent.id,metadata:{category:input.category||null,severity:input.severity||'medium',reason:input.reason||'',discovered_by:input.actor||'model',...semanticMetadata}});
     this.store.insertEdge({project_id:input.project_id,source_id:parent.id,target_id:node.id,type:'has_edge_case',origin:input.origin||'model_discovery'}); const gv=this.store.bumpGraphVersion(input.project_id);
     this.store.event({project_id:input.project_id,kind:'edge_case.created',actor:input.actor||'model',entity_id:node.id,data:{parent_feature_id:parent.id,title:node.title}});
@@ -203,13 +155,22 @@ export class LsgService {
 
   runCompactProgram(input){
     const project=this.store.requireProject(input.project_id),program=String(input.program||'overview'),limit=Math.max(1,Math.min(10,Number(input.limit)||5));
+    if(program==='architectures')return this.authoring.listArchitectures(input);
+    if(program==='architecture')return this.authoring.context(input);
     const nodeSummary=node=>({node_id:node.id,display_id:node.metadata?.display_id||null,type:node.type,title:node.title,priority:node.metadata?.priority||null,implementation_state:node.implementation_state,verification_state:node.verification_state,version:node.version,has_plan:!!this.store.getNodeDocument(node.id)?.markdown?.trim()});
-    if(program==='overview'){const progress=this.workspace.progress({project_id:project.id}),coverage=this.getImplementationPlanCoverage({project_id:project.id});return {program,project:{id:project.id,title:project.title,graph_version:project.graph_version},counts:{features:progress.features_total,roots:progress.root_features,subfeatures:progress.subfeatures,edge_cases:progress.edge_cases_total,combined:progress.combined_total},completion:progress.counts,plans:{written:coverage.with_plan,missing:coverage.missing_plan},next:['feature','next_work','missing_plans','search']};}
+    if(program==='overview'){const progress=this.workspace.progress(input),coverage=this.getScopedPlanCoverage(input);return {program,project:{id:project.id,title:project.title,graph_version:project.graph_version},counts:{features:progress.features_total,roots:progress.root_features,subfeatures:progress.subfeatures,edge_cases:progress.edge_cases_total,combined:progress.combined_total},completion:progress.counts,plans:{written:coverage.with_plan,missing:coverage.missing_plan},next:['architectures','architecture','feature','next_work','missing_plans','search']};}
     if(program==='feature'){if(!input.reference)throw toolError('reference is required for the feature program','INVALID_ARGUMENT');const resolved=this.semantic.resolveReference(project.id,input.reference),feature=nodeSummary(resolved.feature);return {program,project_id:project.id,feature,descendants:resolved.descendants.slice(0,limit).map(nodeSummary),edge_cases:resolved.edge_cases.slice(0,limit).map(nodeSummary),truncated:{descendants:resolved.descendants.length>limit,edge_cases:resolved.edge_cases.length>limit}};}
-    if(program==='next_work'){const frontier=this.getFrontier({project_id:project.id,limit});return {program,project_id:project.id,mode:frontier.mode,items:frontier.frontier.map(node=>({...nodeSummary(node),dependency_ready:node.progress?.dependency_ready,blocked:node.progress?.blocked,recursive_edge_cases:node.progress?.recursive_edge_cases}))};}
-    if(program==='missing_plans'){const page=input.status?this.getMissingPlansByStatus({project_id:project.id,status:input.status,limit,cursor:input.cursor}):this.getNextMissingPlans({project_id:project.id,limit,cursor:input.cursor});return {program,project_id:project.id,...(input.status?{status:page.status}:{}),graph_version:page.graph_version,missing_total:page.missing_total,next_cursor:page.next_cursor,items:page.items.map(item=>({node_id:item.node_id,display_id:item.display_id,type:item.type,title:item.title,priority:item.priority,status:item.status||null,file_name:item.file_name,document_version:item.document_version}))};}
+    if(program==='next_work'){const frontier=this.getFrontier({...input,limit});return {program,project_id:project.id,mode:frontier.mode,items:frontier.frontier.map(node=>({...nodeSummary(node),dependency_ready:node.progress?.dependency_ready,blocked:node.progress?.blocked,recursive_edge_cases:node.progress?.recursive_edge_cases}))};}
+    if(program==='missing_plans'){const page=input.status?this.getMissingPlansByStatus({...input,limit}):this.getNextMissingPlans({...input,limit});return {program,project_id:project.id,...(input.status?{status:page.status}:{}),graph_version:page.graph_version,missing_total:page.missing_total,next_cursor:page.next_cursor,items:page.items.map(item=>({node_id:item.node_id,display_id:item.display_id,type:item.type,title:item.title,priority:item.priority,status:item.status||null,file_name:item.file_name,document_version:item.document_version}))};}
     if(program==='search'){if(!String(input.query||'').trim())throw toolError('query is required for the search program','INVALID_ARGUMENT');return {program,project_id:project.id,query:input.query,items:this.search({project_id:project.id,query:input.query,limit}).map(nodeSummary)};}
     throw toolError(`Unknown compact program: ${program}`,'INVALID_ARGUMENT');
+  }
+
+  getScopedPlanCoverage(input){
+    const result=this.getImplementationPlanCoverage({...input,missing_only:false});
+    if(!input.architecture_key)return input.missing_only?{...result,items:result.items.filter(i=>!i.has_plan)}:result;
+    const items=result.items.filter(i=>this.store.getNode(i.node_id).metadata.architecture_key===input.architecture_key);
+    return {...result,total:items.length,with_plan:items.filter(i=>i.has_plan).length,missing_plan:items.filter(i=>!i.has_plan).length,features_with_plan:items.filter(i=>i.type==='feature'&&i.has_plan).length,features_missing_plan:items.filter(i=>i.type==='feature'&&!i.has_plan).length,edge_cases_with_plan:items.filter(i=>i.type==='edge_case'&&i.has_plan).length,edge_cases_missing_plan:items.filter(i=>i.type==='edge_case'&&!i.has_plan).length,items:input.missing_only?items.filter(i=>!i.has_plan):items};
   }
 
   auditImplementationStatus(input) {
@@ -233,16 +194,22 @@ export class LsgService {
     const add=(severity,code,message,details={})=>issues.push({severity,code,message,...details});
     const duplicate=(field,code)=>{const seen=new Map();for(const node of active.filter(n=>n.metadata?.layer==='semantic')){const value=node.metadata?.[field];if(!value)continue;const key=String(value).toLowerCase();if(seen.has(key))add('error',code,`Duplicate semantic ${field}: ${value}`,{node_ids:[seen.get(key),node.id],value});else seen.set(key,node.id);}};
     duplicate('semantic_key','duplicate_semantic_key');duplicate('display_id','duplicate_display_id');
+    const authoredArchitectureKeys=new Set(this.authoring.listArchitectures({project_id:project.id}).architectures.map(a=>a.key));
     for(const node of active){
       if(node.parent_id){const parent=byId.get(node.parent_id);if(!parent)add('error','missing_parent','Active node references a missing parent.',{node_id:node.id,parent_id:node.parent_id});else if(parent.project_id!==project.id)add('error','cross_project_parent','Node parent belongs to another project.',{node_id:node.id,parent_id:node.parent_id});else if(parent.status!=='active')add('warning','inactive_parent','Active node has an inactive parent.',{node_id:node.id,parent_id:node.parent_id});}
       if(node.metadata?.layer!=='semantic'||node.metadata?.semantic_root)continue;
+      if(node.metadata.authoring_run_id){
+        if(!authoredArchitectureKeys.has(node.metadata.architecture_key))add('error','missing_architecture','Authored node has no known architecture.',{node_id:node.id});
+        const parent=byId.get(node.parent_id);if(parent&&parent.metadata.architecture_key!==node.metadata.architecture_key)add('error','architecture_inheritance','Child architecture differs from its parent.',{node_id:node.id,parent_id:parent.id});
+        for(const citation of node.metadata.source_citations||[]){const source=this.workspace.record('plan_source',citation.source_id);if(!source||source.project_id!==project.id)add('error','missing_source_citation','Original cited source is missing from this project.',{node_id:node.id,source_id:citation.source_id});else if(citation.source_hash!==source.source_hash)add('warning','stale_source_citation','Original source changed; revise the node evidence.',{node_id:node.id,source_id:source.id});else if(!Number.isInteger(citation.start_line)||!Number.isInteger(citation.end_line)||citation.start_line<1||citation.end_line<citation.start_line||citation.end_line>source.line_count)add('error','invalid_source_range','Citation range is outside its source.',{node_id:node.id,source_id:source.id});}
+      }
       const displayId=node.metadata?.display_id||null;
       if(['feature','edge_case'].includes(node.type)&&!node.metadata?.semantic_key)add('error','missing_semantic_key','Semantic node has no stable semantic key.',{node_id:node.id,display_id:displayId});
       if(['feature','edge_case'].includes(node.type)&&!displayId)add('warning','missing_display_id','Semantic node has no human-readable F/E-number.',{node_id:node.id});
       if(node.type==='feature'){
         if(!node.metadata?.priority)add('warning','missing_importance','Semantic feature has no importance level.',{node_id:node.id,display_id:displayId});
         if(!node.metadata?.importance_rationale)add('warning','missing_importance_rationale','Semantic feature importance has no rationale.',{node_id:node.id,display_id:displayId});
-        if(!node.metadata?.proposed_gap&&!(Array.isArray(node.metadata?.source_node_ids)&&node.metadata.source_node_ids.length))add('warning','uncited_semantic_feature','Semantic feature has no lexical source evidence.',{node_id:node.id,display_id:displayId});
+        if(!node.metadata?.proposed_gap&&!(node.metadata?.source_citations?.length||Array.isArray(node.metadata?.source_node_ids)&&node.metadata.source_node_ids.length))add('warning','uncited_semantic_feature','Semantic feature has no original source evidence.',{node_id:node.id,display_id:displayId});
         if(!(Array.isArray(node.metadata?.acceptance_criteria)&&node.metadata.acceptance_criteria.some(item=>String(item).trim())))add('warning','missing_acceptance_criteria','Semantic feature has no acceptance criteria.',{node_id:node.id,display_id:displayId});
       }
       if(node.type==='edge_case'){
@@ -300,8 +267,8 @@ export class LsgService {
   prepareSemanticFeatureSet(input){return this.semantic.prepare(input);}
   stageSemanticFeatureSet(input){const staged=this.semantic.stage(input);if(input.auto_commit===false)return {...staged,auto_committed:false};const committed=this.semantic.commit({project_id:input.project_id,run_id:staged.run_id,expected_graph_version:this.store.requireProject(input.project_id).graph_version,actor:input.actor||'codex'});const listed=this.semantic.listFeatures(input.project_id);return {...committed,auto_committed:true,counts:listed.counts,features:listed.features};}
   commitSemanticFeatureSet(input){return this.semantic.commit(input);}
-  getSemanticFeatureList(input){const list=this.semantic.listFeatures(input.project_id),progress=this.workspace.progress(input),byId=new Map(progress.items.map(p=>[p.id,p]));return {...list,progress_counts:progress.counts,features:list.features.map(n=>({...n,progress:byId.get(n.id),direct_edge_case_count:byId.get(n.id)?.direct_edge_cases??0,recursive_edge_case_count:byId.get(n.id)?.recursive_edge_cases??0,count_label:`${n.metadata.display_id} → ${byId.get(n.id)?.recursive_edge_cases??0} EC`,importance_review_required:!n.metadata.importance_rationale}))};}
-  getSemanticEdgeCases(input){return this.semantic.listEdgeCases(input.project_id,input);}
+  getSemanticFeatureList(input){const list=this.semantic.listFeatures(input.project_id),progress=this.workspace.progress(input),byId=new Map(progress.items.map(p=>[p.id,p]));return {...list,counts:{features_total:progress.features_total,root_features:progress.root_features,subfeatures:progress.subfeatures,edge_cases_total:progress.edge_cases_total},progress_counts:progress.counts,features:list.features.filter(n=>!input.architecture_key||n.metadata.architecture_key===input.architecture_key).map(n=>({...n,progress:byId.get(n.id),direct_edge_case_count:byId.get(n.id)?.direct_edge_cases??0,recursive_edge_case_count:byId.get(n.id)?.recursive_edge_cases??0,count_label:`${n.metadata.display_id} → ${byId.get(n.id)?.recursive_edge_cases??0} EC`,importance_review_required:!n.metadata.importance_rationale}))};}
+  getSemanticEdgeCases(input){const result=this.semantic.listEdgeCases(input.project_id,input);result.edge_cases=result.edge_cases.filter(n=>!input.architecture_key||n.metadata.architecture_key===input.architecture_key);return result;}
   getSemanticDiff(input){return this.semantic.getDiff(input.project_id,input.run_id);}
   resolveSemanticFeatureReference(input){return this.semantic.resolveReference(input.project_id,input.reference);}
   reindexSemanticFeatures(input){return this.semantic.reindex(input.project_id,input.actor);}

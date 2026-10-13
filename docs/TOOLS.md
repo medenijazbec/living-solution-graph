@@ -1,6 +1,7 @@
+<!-- Current v7 tool contract; legacy generation tools below are retired. -->
 # MCP tool catalog
 
-LSG exposes 78 tools. Prefer `solution.run_program` and `solution.get_tool_catalog` for compact model context; call detailed tools only for the current task.
+LSG exposes 88 tools. Prefer `solution.run_program` and `solution.get_tool_catalog` for compact model context; call detailed tools only for the current task.
 
 ## Tool discovery and integrity
 
@@ -9,7 +10,7 @@ LSG exposes 78 tools. Prefer `solution.run_program` and `solution.get_tool_catal
 
 ## Compact graph navigation
 
-- `solution.run_program` — Run `overview`, `feature`, `next_work`, `missing_plans`, or `search` with bounded output.
+- `solution.run_program` — Run `overview`, `feature`, `next_work`, `missing_plans`, `search`, `architectures`, or `architecture` with bounded output.
 - `solution.get_context` — Load bounded graph, frontier, and memory context.
 - `solution.search` — Search nodes by lexical relevance.
 - `solution.select_node_neighborhood` — Return a feature or edge case and every direct neighbor.
@@ -18,9 +19,21 @@ LSG exposes 78 tools. Prefer `solution.run_program` and `solution.get_tool_catal
 - `solution.get_frontier` — Return dependency-ready work.
 - `solution.find_gaps` — Return incomplete, stale, and awaiting-verification gaps.
 
-## Plan graph kickoff
+## Source authoring and architectures
 
-- `solution.start_plan_graph_workflow` — Create/reuse a project keyed to one canonical Markdown plan, commit its lexical source graph, and prepare a compact semantic evidence brief. This is the required first call when graphing a master plan.
+See [AUTHORING_7.md](AUTHORING_7.md) for the exact source, proposal and coverage contract.
+
+- `solution.start_plan_graph_workflow`: register original sources in a canonical directory project without generating nodes.
+- `solution.read_plan_source`: page original lines and record reading coverage for the current run.
+- `solution.get_authoring_status`: source hashes, reading completeness, staged batch summaries, publication and missing plans.
+- `solution.stage_authoring_batch`: save/replace bounded Codex-authored batches by stable batch key.
+- `solution.finalize_plan_graph_workflow`: validate reading, coverage, dependencies and Markdown plans; publish atomically by default.
+- `solution.list_architectures`: architecture definitions and feature counts.
+- `solution.get_architecture_context`: bounded architecture progress and dependency-aware remaining work.
+- `solution.set_feature_architecture`: move a root feature and descendants while retaining F-numbers.
+- `solution.list_workflow_templates`, `solution.get_workflow_template`, `solution.apply_workflow_template`: discover and apply planning structure only.
+
+Counts, progress, feature/edge-case lists, frontier, remaining work, plan coverage and missing-plan queries accept `architecture_key`. Compact programs support `architectures` and `architecture`.
 
 ## Counts and progress
 
@@ -31,10 +44,10 @@ LSG exposes 78 tools. Prefer `solution.run_program` and `solution.get_tool_catal
 
 ## Semantic features and edge cases
 
-- `solution.prepare_semantic_feature_set` — Prepare bounded source evidence for semantic authoring.
-- `solution.stage_semantic_feature_set` — Validate and store a semantic proposal; auto-commit unless review-only is requested.
+- `solution.prepare_semantic_feature_set` — Prepare a fresh authoring run from registered original sources; optional architecture_keys scope.
+- `solution.stage_semantic_feature_set` — Stage one complete authored proposal with plans and coverage, then finalize by default.
 - `solution.commit_semantic_feature_set` — Commit an explicitly staged proposal.
-- `solution.get_semantic_diff` — Inspect proposal changes.
+- `solution.get_semantic_diff` — Read a compact authoring batch/publication summary.
 - `solution.get_semantic_feature_list` — Read numbered features, dependencies, criteria, progress, and edge cases.
 - `solution.get_semantic_edge_cases` — Read edge cases globally or for one feature.
 - `solution.resolve_semantic_feature_reference` — Resolve `F1`, `F1.2`, `1`, or a semantic key.
@@ -78,15 +91,15 @@ LSG exposes 78 tools. Prefer `solution.run_program` and `solution.get_tool_catal
 - `solution.create_project` — Create a project.
 - `solution.delete_project` — Permanently delete a project after exact-title confirmation.
 - `solution.resolve_workspace_project` — Resolve or bind a working directory to an isolated project.
-- `solution.bootstrap_from_markdown_plan` — Analyze, seed, expand, and optionally commit a baseline.
-- `solution.preview_markdown_plan` — Stage a source import without changing nodes.
-- `solution.commit_plan_import` — Materialize a preview against the expected graph version.
+- `solution.bootstrap_from_markdown_plan` — RETIRED: use Codex source authoring.
+- `solution.preview_markdown_plan` — RETIRED: register original source snapshots instead.
+- `solution.commit_plan_import` — RETIRED: finalize Codex-authored batches instead.
 - `solution.get_plan_import` — Read import metadata.
 - `solution.get_bootstrap_report` — Read import analysis, starter evaluation, and audit.
 - `solution.reconcile_plan_import` — Compare source implementation claims with graph truth.
 - `solution.detect_project_archetypes` — Detect applicable project domains.
 - `solution.list_starter_packs` — List domain starter packs.
-- `solution.apply_starter_pack` — Apply one starter pack.
+- `solution.apply_starter_pack` — RETIRED: use structure-only workflow templates.
 - `solution.get_starter_pack_evaluation` — Read coverage provenance.
 - `solution.export_project_snapshot` — Create a compressed checksummed project snapshot.
 - `solution.restore_project_snapshot` — Restore a verified snapshot without overwriting a project.
@@ -125,3 +138,7 @@ Call solution.get_tool_catalog with query="plan", limit=10.
 ```
 
 Use optimistic-concurrency fields returned by the server. Do not reuse stale graph, node, document, work, scale, or batch versions after a mutation.
+
+## Retired automatic generation
+
+`solution.bootstrap_from_markdown_plan`, `solution.preview_markdown_plan`, `solution.commit_plan_import`, and `solution.apply_starter_pack` return `LEGACY_GENERATION_RETIRED`; they cannot create nodes. Legacy import report and starter catalog queries remain available solely for existing graph provenance.

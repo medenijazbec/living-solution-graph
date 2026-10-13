@@ -2,6 +2,8 @@
 
 This guide installs LSG, starts its web workspace, and connects an MCP client. Existing databases are not overwritten by an upgrade.
 
+V7 is initially available on `staging`. For a separate test instance, follow [AUTHORING_7.md](AUTHORING_7.md): clone that branch, choose its own `LSG_DB_PATH`, and use port 7348. Source registration now requires a canonical project directory; multiple master plans can contribute to that project. A v7 startup migrates the selected database to schema v10, so preserve a verified backup before upgrading. Older runtimes must use their schema-v9 backup.
+
 ## Requirements
 
 - Node.js 22.5 or newer (`node --version`)

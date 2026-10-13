@@ -12,7 +12,7 @@ function runtime(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'lsg-tool-audi
 
 test('every registered MCP tool has a strict valid contract and reaches dispatch',async()=>{const r=runtime();try{
   const registry=buildRegistry(r.service),names=registry.map(tool=>tool.name),protocol=new McpProtocol(r.service);
-  assert.equal(names.length,78);assert.equal(new Set(names).size,names.length);
+  assert.equal(names.length,88);assert.equal(new Set(names).size,names.length);
   const validValue=rule=>{if(rule.enum)return rule.enum[0];if(rule.type==='string')return 'x';if(rule.type==='boolean')return false;if(rule.type==='integer'||rule.type==='number')return rule.minimum??1;if(rule.type==='array')return Array.from({length:rule.minItems??0},()=>validValue(rule.items||{}));if(rule.type==='object'){const value={};for(const key of rule.required||[])value[key]=validValue(rule.properties?.[key]||{});return value;}return null;};
   for(const tool of registry){
     assert.match(tool.name,/^(solution|memory)\.[a-z0-9_]+$/);assert.ok(tool.description.length>=20,tool.name);assert.equal(tool.inputSchema.type,'object',tool.name);assert.equal(tool.inputSchema.additionalProperties,false,tool.name);assert.equal(typeof tool.handler,'function',tool.name);
@@ -33,8 +33,8 @@ test('shared validation rejects bounds, non-finite values and malformed nested d
   assert.match(validateArgs({type:'object',properties:{rows:{type:'array',items:{type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false}}},additionalProperties:false},{rows:[{}]}),/rows\[0\]\.name/);
   assert.match(validateArgs(tools.get('solution.stage_semantic_feature_set').inputSchema,{project_id:'p',run_id:'r',proposal:{}}),/proposal\.features/);
   assert.match(validateArgs(tools.get('solution.stage_plan_batch').inputSchema,{project_id:'p',expected_graph_version:1,plans:[]}),/at least 1 item/);
-  assert.equal(validateArgs(tools.get('solution.stage_semantic_feature_set').inputSchema,{project_id:'p',run_id:'r',proposal:{features:[{key:'gap',title:'Gap',priority:'P2',importance_rationale:'Useful',outcome:'Outcome',proposed_gap:true,acceptance_criteria:['Pass']}]}}),null);
-  assert.equal(validateArgs(tools.get('solution.stage_semantic_feature_set').inputSchema,{project_id:'p',run_id:'r',proposal:{features:[{key:'existing',title:'Existing',priority:'P1',outcome:'Updated outcome',source_node_ids:['source'],acceptance_criteria:['Pass']}]}}),null);
+  assert.equal(validateArgs(tools.get('solution.stage_semantic_feature_set').inputSchema,{project_id:'p',run_id:'r',proposal:{features:[{key:'gap',title:'Gap',priority:'P2',importance_rationale:'Useful',outcome:'Outcome',proposed_gap:true,acceptance_criteria:['Pass'],implementation_plan:'# Implementation\n## Validation\nTest the gap.'}]}}),null);
+  assert.match(validateArgs(tools.get('solution.stage_semantic_feature_set').inputSchema,{project_id:'p',run_id:'r',proposal:{features:[{key:'existing',title:'Existing',priority:'P1',importance_rationale:'Required',outcome:'Updated outcome',source_node_ids:['source'],acceptance_criteria:['Pass'],implementation_plan:'# Implementation\n## Validation\nTest it.'}]}}),/unknown argument: proposal.features\[0\].source_node_ids/);
   assert.match(validateArgs(tools.get('solution.update_work').inputSchema,{project_id:'p',work_id:'w',owner:'a',expected_version:1,action:'submit',result:{summary:'Done',patch:'unbounded'}}),/unknown argument: result\.patch/);
   assert.match(validateArgs(tools.get('solution.review_work').inputSchema,{project_id:'p',work_id:'w',expected_version:1,reviewer:'r',approved:true,evidence:{kind:'guess',summary:'Maybe'}}),/must be one of/);
 }finally{r.close();}});

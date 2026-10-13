@@ -8,6 +8,7 @@ import { VERSION } from '../version.mjs';
 
 import { workspaceTools } from '../mcp/workspace-tools.mjs';
 import { validateArgs } from '../mcp/registry.mjs';
+import { retireGeneration, authoringTools } from '../mcp/authoring-tools.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const publicDir=path.resolve(here,'../../public');
@@ -54,9 +55,15 @@ export function createHttpServer({service,protocol,config,log=console.error}){
 
     if(pathname==='/api/projects'&&req.method==='GET')return json(res,200,{projects:service.store.listProjects()});
     if(pathname==='/api/projects'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.createProject(b));}
+    if(pathname==='/api/plan-sources/register'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.authoring.register(b));}
     if(pathname==='/api/project-snapshots/restore'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.restoreProjectSnapshot(b));}
     if(pathname==='/api/workspaces/resolve'&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.resolveWorkspaceProject(b));}
     let m;
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/authoring\/status$/))&&req.method==='GET')return json(res,200,service.authoring.status({project_id:decodeURIComponent(m[1])}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/architectures$/))&&req.method==='GET')return json(res,200,service.authoring.listArchitectures({project_id:decodeURIComponent(m[1])}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/templates\/apply$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.authoring.applyTemplate({...b,project_id:decodeURIComponent(m[1])}));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/sources$/))&&req.method==='GET')return json(res,200,{sources:service.authoring.records('plan_source',decodeURIComponent(m[1])).map(s=>service.authoring.sourceInfo(s))});
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/sources\/([^/]+)$/))&&req.method==='GET'){const source=service.authoring.get('plan_source',decodeURIComponent(m[2]),decodeURIComponent(m[1]));return json(res,200,{...service.authoring.sourceInfo(source),markdown:source.markdown});}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/activity\/stream$/))&&req.method==='GET'){
       const projectId=decodeURIComponent(m[1]);service.store.requireProject(projectId);
       res.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-store','connection':'keep-alive'});res.write(': connected\n\n');
@@ -76,9 +83,9 @@ export function createHttpServer({service,protocol,config,log=console.error}){
     if((m=pathname.match(/^\/api\/projects\/([^/]+)$/))&&req.method==='DELETE'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.deleteProject({...b,project_id:decodeURIComponent(m[1])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/graph$/))&&req.method==='GET')return json(res,200,service.getGraphView({project_id:decodeURIComponent(m[1])}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/audit$/))&&req.method==='GET')return json(res,200,service.auditImplementationStatus({project_id:decodeURIComponent(m[1])}));
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/frontier$/))&&req.method==='GET')return json(res,200,service.getFrontier({project_id:decodeURIComponent(m[1]),limit:Number(url.searchParams.get('limit')||25)}));
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/features$/))&&req.method==='GET')return json(res,200,service.getSemanticFeatureList({project_id:decodeURIComponent(m[1])}));
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases$/))&&req.method==='GET')return json(res,200,service.getSemanticEdgeCases({project_id:decodeURIComponent(m[1]),feature_id:url.searchParams.get('feature_id')||undefined,semantic_key:url.searchParams.get('semantic_key')||undefined}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/frontier$/))&&req.method==='GET')return json(res,200,service.getFrontier({project_id:decodeURIComponent(m[1]),architecture_key:url.searchParams.get('architecture_key')||undefined,limit:Number(url.searchParams.get('limit')||25)}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/features$/))&&req.method==='GET')return json(res,200,service.getSemanticFeatureList({project_id:decodeURIComponent(m[1]),architecture_key:url.searchParams.get('architecture_key')||undefined}));
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases$/))&&req.method==='GET')return json(res,200,service.getSemanticEdgeCases({project_id:decodeURIComponent(m[1]),architecture_key:url.searchParams.get('architecture_key')||undefined,feature_id:url.searchParams.get('feature_id')||undefined,semantic_key:url.searchParams.get('semantic_key')||undefined}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases\/([^/]+)$/))&&req.method==='PATCH'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.updateSemanticEdgeCase({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/edge-cases\/([^/]+)$/))&&req.method==='DELETE'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.deleteSemanticEdgeCase({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/implementation-plan-coverage$/))&&req.method==='GET')return json(res,200,service.getImplementationPlanCoverage({project_id:decodeURIComponent(m[1]),missing_only:url.searchParams.get('missing_only')==='true'}));
@@ -93,12 +100,9 @@ export function createHttpServer({service,protocol,config,log=console.error}){
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/implementation-plan$/))&&req.method==='GET')return json(res,200,service.getNodeImplementationPlan({project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/implementation-plan$/))&&req.method==='PUT'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.setNodeImplementationPlan({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/implementation-plan$/))&&req.method==='DELETE'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.deleteNodeImplementationPlan({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/runs\/([^/]+)$/))&&req.method==='GET')return json(res,200,service.getSemanticDiff({project_id:decodeURIComponent(m[1]),run_id:decodeURIComponent(m[2])}));
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/prepare$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.prepareSemanticFeatureSet({...b,project_id:decodeURIComponent(m[1])}));}
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/stage$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.stageSemanticFeatureSet({...b,project_id:decodeURIComponent(m[1])}));}
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/commit$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.commitSemanticFeatureSet({...b,project_id:decodeURIComponent(m[1])}));}
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/bootstrap\/preview$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.previewMarkdownPlan({...b,project_id:decodeURIComponent(m[1])}));}
-    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/bootstrap\/commit$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.commitPlanImport({...b,project_id:decodeURIComponent(m[1])}));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/runs\/([^/]+)$/))&&req.method==='GET'){const args={project_id:decodeURIComponent(m[1]),run_id:decodeURIComponent(m[2])};return json(res,200,service.workspace.record('authoring_run',args.run_id)?service.authoring.status(args):service.getSemanticDiff(args));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/semantic\/(prepare|stage|commit)$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes),args={...b,project_id:decodeURIComponent(m[1])},name=m[2]==='prepare'?'solution.prepare_semantic_feature_set':m[2]==='stage'?'solution.stage_semantic_feature_set':'solution.commit_semantic_feature_set',tool=authoringTools(service).find(t=>t.name===name);const invalid=validateArgs(tool.inputSchema,args);if(invalid)return json(res,400,{error:invalid});return json(res,200,tool.handler(args));}
+    if((m=pathname.match(/^\/api\/projects\/([^/]+)\/bootstrap\/(preview|commit)$/))&&req.method==='POST')retireGeneration();
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/edge-cases$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,201,service.addEdgeCase({...b,project_id:decodeURIComponent(m[1])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/implementation$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.setImplementationState({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
     if((m=pathname.match(/^\/api\/projects\/([^/]+)\/nodes\/([^/]+)\/verification$/))&&req.method==='POST'){const b=await readBody(req,config.maxBodyBytes);return json(res,200,service.setVerificationState({...b,project_id:decodeURIComponent(m[1]),node_id:decodeURIComponent(m[2])}));}
