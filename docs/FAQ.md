@@ -44,4 +44,4 @@ Back up first. V7 migrates a copy or the chosen database to schema v10 while pre
 
 ## How do I install it?
 
-See [INSTALL.md](INSTALL.md). V7 is initially delivered on `staging`; the published 6.3.1 release and active runtime are separate. The package name is `living-solution-graph-mcp`, not `lsg`. A staging push does not publish to npm.
+See [INSTALL.md](INSTALL.md). V7.0.0 is released on `master` and GitHub. Use a separate database when testing an upgrade. The package name is `living-solution-graph-mcp`, not `lsg`. A staging push does not publish to npm.

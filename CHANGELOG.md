@@ -1,6 +1,6 @@
 # Changelog
 
-## 7.0.0 — 2026-10-13 (staging)
+## 7.0.0 — 2026-10-13
 
 - Replaced the default lexical generator with Codex authoring from versioned original Markdown sources. Registration creates no inferred graph nodes.
 - Grouped master plans by canonical workspace directory; architecture groups share one project and retain unique F-numbers, progress, dependencies and history.
@@ -8,7 +8,7 @@
 - Added architecture queries, filtering and separate priority-ring circles, plus a structure-only TypeScript / ASP.NET / MySQL workflow template.
 - Retired automatic generation tools with `LEGACY_GENERATION_RETIRED`. Updated agent instructions, FAQ and source-registration UI; kept 6.3.1 status colors and canvas interactions.
 - Migrated storage to schema v10 and project snapshots to v2; v1 snapshots remain restorable. Older servers must use a pre-migration database backup.
-- This build is delivered to staging only; master, published releases and the active runtime remain at 6.3.1.
+- Released on master after staging verification. The GitHub release includes an installable package and browser screenshots; upgrading a local runtime is a separate operation.
 
 ## 6.3.1 — 2026-09-27
 

@@ -30,10 +30,10 @@ Automatic lexical bootstrap/preview/commit and starter-pack generation tools ret
 
 Schema v10 keeps legacy projects separate rather than merging them. If more than one legacy project shares a directory, select `project_id` explicitly. Snapshot v2 includes sources and architectures; v1 snapshots can still be restored. A 6.3.1 server must use a schema-v9 backup rather than opening a migrated database.
 
-For a separate staging test instance:
+For a separate v7 test instance:
 
 ```powershell
-git clone --branch staging https://github.com/medenijazbec/living-solution-graph.git C:\Tools\LSG-7-Test
+git clone --branch master https://github.com/medenijazbec/living-solution-graph.git C:\Tools\LSG-7-Test
 cd C:\Tools\LSG-7-Test
 npm ci
 $env:LSG_DB_PATH = 'C:\Tools\LSG-7-Test\data\test.sqlite'

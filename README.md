@@ -43,6 +43,9 @@ A long plan is useful to read, but difficult to execute reliably across many cod
 - Project-scoped memory and Git history.
 - Compact queries that avoid dumping the whole graph into model context.
 - A draggable, zoomable web workspace with semantic and source views.
+- Multiple master plans in one directory-bound project, with a separate circle for each architecture.
+- Complete source reading, resumable authoring batches, source coverage, and atomic publication.
+- A TypeScript / ASP.NET / MySQL planning template and architecture-specific queries and filters.
 
 ## Install in five minutes
 
@@ -58,7 +61,15 @@ npm start
 
 Open [http://127.0.0.1:7347](http://127.0.0.1:7347). On a new Windows installation, durable local data defaults to `%LOCALAPPDATA%\LivingSolutionGraph` unless `LSG_DB_PATH` is configured.
 
-After the npm release is available, install the standalone command instead of cloning the repository:
+You can also download the package archive from the [v7.0.0 GitHub release](https://github.com/medenijazbec/living-solution-graph/releases/tag/v7.0.0) and install it directly:
+
+```powershell
+npm install --global .\living-solution-graph-mcp-7.0.0.tgz
+lsg-mcp doctor
+lsg-mcp http
+```
+
+Once published to the npm registry, the standalone package can be installed by name:
 
 ```powershell
 npm install --global living-solution-graph-mcp
@@ -96,7 +107,7 @@ LSG also supports stdio clients. Copy and adapt [`mcp.json.example`](mcp.json.ex
 
 ## Codex authoring and architecture circles
 
-V7 is delivered on the staging branch. Clone with `git clone --branch staging https://github.com/medenijazbec/living-solution-graph.git` and use a separate database for testing. Master and the published 6.3.1 release remain unchanged.
+V7.0.0 is the current release on `master`. For an isolated test instance, choose a separate database and port using [the test setup](docs/AUTHORING_7.md#compatibility-and-isolated-testing). Back up an existing database before its schema-v10 migration.
 
 The first tool is `solution.start_plan_graph_workflow`: register the original Markdown in a canonical workspace-directory project. Registration creates no inferred features or edge cases. Multiple plans in that directory contribute to the same project; repository identity is separate.
 
@@ -110,7 +121,7 @@ See [the authoring contract and isolated test setup](docs/AUTHORING_7.md) and [F
 
 ### Semantic card status colors
 
-Feature and edge-case outlines reflect implementation progress before importance: red means no implementation progress; bright blue means work still needs current verification (including unverified, verifying, stale, or failed); neon orange means verified partial progress; and neon green means the full required feature/edge-case closure is verified. Priority remains visible independently in each P0–P3 badge. Browser regression captures: [not started](docs/screenshots/v6.3.1/not-started-red.png), [partial and unverified](docs/screenshots/v6.3.1/partial-unverified-blue.png), [partial and verified](docs/screenshots/v6.3.1/partial-verified-orange.png), and [fully verified](docs/screenshots/v6.3.1/fully-verified-green.png).
+Feature and edge-case outlines reflect implementation progress before importance: red means no implementation progress; bright blue means work still needs current verification (including unverified, verifying, stale, or failed); neon orange means verified partial progress; and neon green means the full required feature/edge-case closure is verified. Priority remains visible independently in each P0–P3 badge. Browser regression captures: [not started](docs/screenshots/v7.0.0/not-started-red.png), [partial and unverified](docs/screenshots/v7.0.0/partial-unverified-blue.png), [partial and verified](docs/screenshots/v7.0.0/partial-verified-orange.png), and [fully verified](docs/screenshots/v7.0.0/fully-verified-green.png).
 
 Use `solution.run_program` for compact routine navigation. Use `solution.get_tool_catalog` to search the tool surface without loading all schemas, and `solution.validate_project_integrity` to check graph consistency before a release or backup. The complete catalog contains **88 MCP tools** and is documented in [MCP tools](docs/TOOLS.md).
 
@@ -141,6 +152,7 @@ npm test
 npx playwright install chromium
 npm run test:browser
 npm run test:orbital
+npm run test:architectures
 npm run smoke
 npm run verify
 node src/cli.mjs doctor
@@ -157,7 +169,7 @@ The registry contract suite dispatches every MCP tool, checks unique names and s
 | [MCP tool catalog](docs/TOOLS.md) | All tools grouped by job |
 | [FAQ](docs/FAQ.md) | Plan projects, automatic semantic publication, missing plans, and npm install |
 | [Workspace 6.1](docs/WORKSPACE_6_1.md) | Progress, memory, work claims, live activity, and canvas behavior |
-| [Architecture](docs/living_solution_graph_v6_architecture.md) | Runtime and storage design |
+| [V7 authoring](docs/AUTHORING_7.md) | Architecture circles, source coverage, authoring tools, and isolated instances |
 | [Production](docs/PRODUCTION.md) | Secure single-writer deployment |
 | [Changelog](CHANGELOG.md) | Release history |
 

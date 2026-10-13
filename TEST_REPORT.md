@@ -159,7 +159,7 @@ The sandbox could not resolve the npm registry during an attempt to install the 
 ## Deployment boundary
 
 The packaged implementation is suitable for a single active server instance with a local persistent SQLite database. Horizontal multi-host writes require a shared transactional storage adapter; the package does not claim HA/multi-writer SQLite support.
-# LSG 7.0.0 staging verification — 2026-10-13
+# LSG 7.0.0 release verification — 2026-10-13
 
 All checks below passed on Windows with Node.js 22.16.0, using isolated temporary databases:
 
@@ -174,6 +174,6 @@ All checks below passed on Windows with Node.js 22.16.0, using isolated temporar
 
 Browser evidence: [architecture circles](docs/screenshots/v7.0.0/architecture-circles.png), [selected Markdown plan](docs/screenshots/v7.0.0/architecture-plan-editor.png), [red](docs/screenshots/v7.0.0/not-started-red.png), [blue](docs/screenshots/v7.0.0/partial-unverified-blue.png), [orange](docs/screenshots/v7.0.0/partial-verified-orange.png), [green](docs/screenshots/v7.0.0/fully-verified-green.png).
 
-This is staging delivery only. Master and published releases remain 6.3.1. Instance cleanup uses `scripts/reset-instance.mjs`, which creates and verifies a SQLite backup before deleting project data and preserves the original database schema, instance settings, personal memory and source files.
+This tested implementation passed GitHub CI on Node.js 22, 24 and 26, including the browser job, before promotion from staging to master. Instance cleanup uses `scripts/reset-instance.mjs`, which creates and verifies a SQLite backup before deleting project data and preserves the original database schema, instance settings, personal memory and source files.
 
 ---

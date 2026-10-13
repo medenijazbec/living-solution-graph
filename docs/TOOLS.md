@@ -1,4 +1,4 @@
-<!-- Current v7 tool contract; legacy generation tools below are retired. -->
+<!-- Current v7 tool contract; retired endpoints appear only in compatibility notes. -->
 # MCP tool catalog
 
 LSG exposes 88 tools. Prefer `solution.run_program` and `solution.get_tool_catalog` for compact model context; call detailed tools only for the current task.
@@ -86,21 +86,11 @@ Counts, progress, feature/edge-case lists, frontier, remaining work, plan covera
 - `solution.set_verification_state` — Record unverified, verifying, verified, failed, or stale state.
 - `solution.record_evidence` — Attach automated, manual, commit, or artifact evidence.
 
-## Projects, imports, and backups
+## Projects and backups
 
 - `solution.create_project` — Create a project.
 - `solution.delete_project` — Permanently delete a project after exact-title confirmation.
 - `solution.resolve_workspace_project` — Resolve or bind a working directory to an isolated project.
-- `solution.bootstrap_from_markdown_plan` — RETIRED: use Codex source authoring.
-- `solution.preview_markdown_plan` — RETIRED: register original source snapshots instead.
-- `solution.commit_plan_import` — RETIRED: finalize Codex-authored batches instead.
-- `solution.get_plan_import` — Read import metadata.
-- `solution.get_bootstrap_report` — Read import analysis, starter evaluation, and audit.
-- `solution.reconcile_plan_import` — Compare source implementation claims with graph truth.
-- `solution.detect_project_archetypes` — Detect applicable project domains.
-- `solution.list_starter_packs` — List domain starter packs.
-- `solution.apply_starter_pack` — RETIRED: use structure-only workflow templates.
-- `solution.get_starter_pack_evaluation` — Read coverage provenance.
 - `solution.export_project_snapshot` — Create a compressed checksummed project snapshot.
 - `solution.restore_project_snapshot` — Restore a verified snapshot without overwriting a project.
 
@@ -142,3 +132,5 @@ Use optimistic-concurrency fields returned by the server. Do not reuse stale gra
 ## Retired automatic generation
 
 `solution.bootstrap_from_markdown_plan`, `solution.preview_markdown_plan`, `solution.commit_plan_import`, and `solution.apply_starter_pack` return `LEGACY_GENERATION_RETIRED`; they cannot create nodes. Legacy import report and starter catalog queries remain available solely for existing graph provenance.
+
+Historical graphs retain read-only provenance through get_plan_import, get_bootstrap_report, reconcile_plan_import and the starter/archetype catalog queries. These are compatibility utilities, not the v7 authoring workflow.
